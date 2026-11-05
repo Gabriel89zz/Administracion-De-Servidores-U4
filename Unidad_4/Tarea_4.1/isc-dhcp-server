@@ -1,0 +1,14 @@
+# Defaults for isc-dhcp-server initscript
+# Archivo de destino en Debian: /etc/default/isc-dhcp-server
+
+# Ruta al archivo de configuración
+DHCPDv4_CONF=/etc/dhcp/dhcpd.conf
+
+# Interfaz de red en la que escuchará el servicio DHCP.
+# En Debian con VMware, la segunda interfaz para VMnet1 suele ser ens37, ens38 o eth1.
+# Reemplazar con el nombre de tu interfaz obtenida con 'ip a' (ejemplo: ens37).
+INTERFACESv4="ens37"
+
+# Dejar IPv6 en blanco si solo se trabaja con IPv4
+INTERFACESv6=""
+

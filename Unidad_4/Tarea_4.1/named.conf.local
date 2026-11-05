@@ -1,0 +1,18 @@
+// Declaración de Zonas Directa e Inversa para el Dominio Corporativo
+// Archivo de destino en Debian: /etc/bind/named.conf.local
+
+// Zona Directa: Traduce nombres (ej. www.empresa.local) a direcciones IP
+zone "empresa.local" {
+    type master;
+    file "/etc/bind/zones/db.empresa.local";
+    allow-transfer { none; }; // No se permite transferencia de zona no autorizada
+};
+
+// Zona Inversa: Traduce direcciones IP (192.168.50.X) a nombres FQDN
+// Notación especial: octetos invertidos seguidos de in-addr.arpa
+zone "50.168.192.in-addr.arpa" {
+    type master;
+    file "/etc/bind/zones/db.192.168.50";
+    allow-transfer { none; };
+};
+

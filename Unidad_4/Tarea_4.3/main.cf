@@ -1,0 +1,69 @@
+# Configuración Principal del Servidor MTA Postfix
+# Archivo de destino en Debian: /etc/postfix/main.cf
+
+# Identificación del Servidor y Dominio Corporativo
+myhostname = mail.empresa.local
+mydomain = empresa.local
+myorigin = /etc/mailname
+
+# Banner de bienvenida SMTP
+smtpd_banner = $myhostname ESMTP Postfix (Debian/GNU)
+biff = no
+
+# Apéndice de dominio para direcciones incompletas
+append_dot_mydomain = no
+
+# Archivo de alias del sistema
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+
+# Dominios para los cuales este servidor recibe correo localmente
+mydestination = $myhostname, empresa.local, localhost.empresa.local, localhost
+
+# Redes de confianza autorizadas a retransmitir correo (Relay)
+# Incluye localhost y la subred corporativa 192.168.50.0/24
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 192.168.50.0/24
+
+# ==============================================================================
+# ALMACENAMIENTO EN FORMATO MAILDIR
+# ==============================================================================
+# Guarda cada correo como un archivo individual dentro de ~/Maildir/
+home_mailbox = Maildir/
+
+# Límites de tamaño (0 = sin límite para laboratorio)
+mailbox_size_limit = 0
+message_size_limit = 20480000
+recipient_delimiter = +
+inet_interfaces = all
+inet_protocols = ipv4
+
+# ==============================================================================
+# SEGURIDAD CRIPTOGRÁFICA SSL/TLS
+# ==============================================================================
+smtpd_tls_cert_file = /etc/ssl/certs/empresa.local.crt
+smtpd_tls_key_file = /etc/ssl/private/empresa.local.key
+smtpd_tls_security_level = may
+smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_loglevel = 1
+smtpd_tls_received_header = yes
+
+smtp_tls_security_level = may
+smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtp_tls_loglevel = 1
+
+# ==============================================================================
+# AUTENTICACIÓN SASL INTEGRADA CON DOVECOT
+# ==============================================================================
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_local_domain = $mydomain
+broken_sasl_auth_clients = yes
+
+# Restricciones para evitar Open Relay
+smtpd_recipient_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination
+

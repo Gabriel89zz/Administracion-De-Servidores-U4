@@ -1,0 +1,43 @@
+;
+; Archivo de Zona Directa para empresa.local
+; Archivo de destino en Debian: /etc/bind/zones/db.empresa.local
+;
+$TTL    86400           ; Tiempo de vida por defecto en caché (1 día)
+@       IN      SOA     ns1.empresa.local. admin.empresa.local. (
+                        2026110501      ; Número de Serie (formato YYYYMMDDNN)
+                        3600            ; Refresh (1 hora)
+                        1800            ; Retry (30 minutos)
+                        1209600         ; Expire (2 semanas)
+                        86400 )         ; Negative Cache TTL (1 día)
+
+; ==============================================================================
+; SERVIDORES DE NOMBRES (NS)
+; ==============================================================================
+@       IN      NS      ns1.empresa.local.
+
+; ==============================================================================
+; REGISTROS DE DIRECCIÓN IPV4 (TIPO A)
+; ==============================================================================
+@       IN      A       192.168.50.10
+ns1     IN      A       192.168.50.10
+server  IN      A       192.168.50.10
+www     IN      A       192.168.50.10
+mail    IN      A       192.168.50.10
+ftp     IN      A       192.168.50.10
+
+; ==============================================================================
+; ALIAS CANÓNICOS (TIPO CNAME)
+; ==============================================================================
+web     IN      CNAME   www.empresa.local.
+
+; ==============================================================================
+; REGISTRO DE INTERCAMBIO DE CORREO (TIPO MX)
+; ==============================================================================
+; Prioridad 10 apuntando al host mail.empresa.local
+@       IN      MX  10  mail.empresa.local.
+
+; ==============================================================================
+; REGISTRO SPF (TIPO TXT) - Requerido para seguridad y reputación de correo
+; ==============================================================================
+@       IN      TXT     "v=spf1 mx ip4:192.168.50.10 ~all"
+
