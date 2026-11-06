@@ -29,13 +29,13 @@ crear_usuario() {
 
 echo "=== INICIALIZANDO CUENTAS DE CORREO CORPORATIVAS ==="
 # Creación de usuario1 (remitente de prueba)
-crear_usuario "usuario1" "Alumno123!"
+crear_usuario "usuario1" "Alumno123"
 
 # Creación de usuario2 (destinatario de prueba)
-crear_usuario "usuario2" "Alumno123!"
+crear_usuario "usuario2" "Alumno123"
 
 echo "=== CUENTAS Y BUZONES CREADOS EXITOSAMENTE ==="
 echo "Cuentas disponibles:"
-echo "1. usuario1@empresa.local (Clave: Alumno123!)"
-echo "2. usuario2@empresa.local (Clave: Alumno123!)"
+echo "1. usuario1@empresa.local (Clave: Alumno123)"
+echo "2. usuario2@empresa.local (Clave: Alumno123)"
 

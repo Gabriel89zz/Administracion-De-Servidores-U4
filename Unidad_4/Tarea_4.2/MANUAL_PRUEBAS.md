@@ -68,24 +68,27 @@ sudo systemctl restart apache2
 
 ### Paso 1.5: Configuración de vsftpd y Creación del Usuario Enjaulado
 ```bash
-# Respaldar y copiar configuración de vsftpd
+# 1. Copiar configuración de vsftpd
 sudo cp vsftpd.conf /etc/vsftpd.conf
 
-# Crear usuario ftpuser con contraseña Alumno123! de forma directa y no interactiva
-sudo adduser --gecos "" --disabled-password ftpuser
-echo "ftpuser:Alumno123!" | sudo chpasswd
+# 2. Ajustar PAM para que vsftpd permita el acceso a usuarios locales sin bloqueo de shells
+sudo sed -i 's/^auth\s\+required\s\+pam_shells.so/#auth required pam_shells.so/' /etc/pam.d/vsftpd
+
+# 3. Crear usuario ftpuser con contraseña Alumno123 de forma directa y no interactiva
+sudo id -u ftpuser &>/dev/null || sudo adduser --gecos "" --disabled-password ftpuser
+echo "ftpuser:Alumno123" | sudo chpasswd
 sudo usermod -s /bin/bash ftpuser
 
-# Estructurar la jaula chroot (permisos seguros de vsftpd)
+# 4. Estructurar la jaula chroot (permisos seguros de vsftpd)
 sudo mkdir -p /home/ftpuser/ftp/archivos
 sudo chown nobody:nogroup /home/ftpuser/ftp
 sudo chmod a-w /home/ftpuser/ftp
 sudo chown ftpuser:ftpuser /home/ftpuser/ftp/archivos
 
-# Crear un archivo de bienvenida dentro de la carpeta escribible
+# 5. Crear un archivo de bienvenida dentro de la carpeta escribible
 echo "Bienvenido al directorio seguro del servidor FTP" | sudo tee /home/ftpuser/ftp/archivos/leeme.txt
 
-# Reiniciar vsftpd y verificar estado
+# 6. Reiniciar vsftpd y verificar estado activo
 sudo systemctl restart vsftpd
 sudo systemctl status vsftpd --no-pager
 ```
@@ -139,7 +142,7 @@ En la misma consola:
 ftp 192.168.50.10
 ```
 - `Name`: `ftpuser`
-- `Password`: `Alumno123!`
+- `Password`: `Alumno123`
 > **Resultado esperado:** Mensaje de bienvenida corporativo y `230 User logged in`. Se muestra el prompt `ftp>`.
 
 ### Paso 3.3: Demostración del Enjaulamiento (Chroot Jail)

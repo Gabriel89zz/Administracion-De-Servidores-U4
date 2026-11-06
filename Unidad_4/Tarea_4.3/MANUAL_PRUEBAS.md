@@ -47,7 +47,7 @@ Ejecuta el script incluido:
 chmod +x crear_buzones.sh
 sudo ./crear_buzones.sh
 ```
-> Esto creará `usuario1` y `usuario2` con sus respectivos directorios `~/Maildir/{cur,new,tmp}` y contraseña `Alumno123!`.
+> Esto creará `usuario1` y `usuario2` con sus respectivos directorios `~/Maildir/{cur,new,tmp}` y contraseña `Alumno123`.
 
 ### Paso 1.5: Reiniciar Servicios y Validar Estado
 ```bash
