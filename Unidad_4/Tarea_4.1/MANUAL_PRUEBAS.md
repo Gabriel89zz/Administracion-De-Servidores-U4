@@ -4,57 +4,94 @@ Este manual contiene los pasos y comandos exactos para verificar la correcta imp
 
 ---
 
-## 1. Verificación Inicial en Debian Server
+## 1. Despliegue en Debian Server (Instalación y Copia de Archivos)
 
-Antes de realizar pruebas desde el cliente, validamos la integridad y sintaxis en el servidor:
+Antes de realizar las pruebas, debemos instalar los paquetes necesarios y copiar los archivos de configuración desde la carpeta del repositorio clonado hacia sus ubicaciones definitivas en el sistema:
 
+### Paso 1.1: Instalación de Paquetes
+En la terminal de Debian Server:
 ```bash
-# 1.1 Validar sintaxis general de BIND9
-sudo named-checkconf
-
-# 1.2 Validar archivo de zona directa
-sudo named-checkzone empresa.local /etc/bind/zones/db.empresa.local
-
-# 1.3 Validar archivo de zona inversa
-sudo named-checkzone 50.168.192.in-addr.arpa /etc/bind/zones/db.192.168.50
-
-# 1.4 Validar sintaxis de DHCP
-sudo dhcpd -t -cf /etc/dhcp/dhcpd.conf
-
-# 1.5 Reiniciar y comprobar estado activo de ambos servicios
-sudo systemctl restart bind9 && sudo systemctl status bind9 --no-pager
-sudo systemctl restart isc-dhcp-server && sudo systemctl status isc-dhcp-server --no-pager
+sudo apt update
+sudo apt install -y isc-dhcp-server bind9 bind9utils dnsutils
 ```
-> **Resultado esperado:** Ambas zonas deben responder `OK` con el número de serie cargado y ambos servicios deben figurar en estado `active (running)`.
+
+### Paso 1.2: Despliegue de Archivos de DNS BIND9
+Desde la carpeta del repositorio `Administracion-De-Servidores-U4/Unidad_4/Tarea_4.1/`:
+```bash
+# Crear directorio para almacenar los archivos de zonas
+sudo mkdir -p /etc/bind/zones
+
+# Copiar archivos de configuración principal
+sudo cp named.conf.options /etc/bind/named.conf.options
+sudo cp named.conf.local /etc/bind/named.conf.local
+
+# Copiar archivos de zona directa e inversa
+sudo cp db.empresa.local /etc/bind/zones/db.empresa.local
+sudo cp db.192.168.50 /etc/bind/zones/db.192.168.50
+```
+
+### Paso 1.3: Despliegue de Archivos de DHCP
+Ajusta la interfaz de escucha en `isc-dhcp-server` según el nombre de tu segunda tarjeta (ejemplo: `ens37`):
+```bash
+# Copiar configuraciones de DHCP al sistema
+sudo cp dhcpd.conf /etc/dhcp/dhcpd.conf
+sudo cp isc-dhcp-server /etc/default/isc-dhcp-server
+```
 
 ---
 
-## 2. Pruebas de Asignación de IP Dinámica (DHCP)
+## 2. Verificación de Integridad y Arranque de Servicios
 
-### Paso 2.1: En el Servidor Debian (Monitoreo en Vivo de Logs)
+Una vez copiados los archivos, comprobamos que no existan errores de sintaxis y levantamos ambos servicios:
+
+```bash
+# 2.1 Validar sintaxis general de BIND9
+sudo named-checkconf
+
+# 2.2 Validar archivo de zona directa
+sudo named-checkzone empresa.local /etc/bind/zones/db.empresa.local
+
+# 2.3 Validar archivo de zona inversa
+sudo named-checkzone 50.168.192.in-addr.arpa /etc/bind/zones/db.192.168.50
+
+# 2.4 Validar sintaxis de DHCP
+sudo dhcpd -t -cf /etc/dhcp/dhcpd.conf
+
+# 2.5 Iniciar y comprobar estado activo de ambos servicios
+sudo systemctl restart bind9 && sudo systemctl status bind9 --no-pager
+sudo systemctl restart isc-dhcp-server && sudo systemctl status isc-dhcp-server --no-pager
+```
+> **Resultado esperado:** Ambas zonas deben responder `OK` con el número de serie cargado, la prueba de DHCP no debe arrojar errores y ambos servicios deben figurar en estado `active (running)` en color verde.
+
+---
+
+## 3. Pruebas de Asignación de IP Dinámica (DHCP)
+
+### Paso 3.1: En el Servidor Debian (Monitoreo en Vivo de Logs)
 Abre una terminal en Debian Server y ejecuta:
 ```bash
 sudo tail -f /var/log/syslog | grep dhcpd
 ```
 
-### Paso 2.2: En la Estación Cliente (Solicitud de IP)
+### Paso 3.2: En la Estación Cliente (Solicitud de IP)
 
 #### 🐧 Opción A: En Cliente Linux (Debian XFCE)
-Abre la terminal en Debian XFCE:
+Abre la terminal en Debian XFCE. Puedes solicitar/renovar la IP mediante **NetworkManager** (nativo) o con **dhclient**:
+
 ```bash
-# Liberar la IP actual
-sudo dhclient -r
+# Método 1 (Nativo con NetworkManager, no requiere instalar nada):
+sudo nmcli networking off && sudo nmcli networking on
 
-# Solicitar nueva IP por DHCP con reporte detallado (-v)
-sudo dhclient -v
+# Método 2 (Si tienes instalado isc-dhcp-client):
+sudo dhclient -r && sudo dhclient -v
 
-# Verificar la IP, máscara y estado de la interfaz
+# Verificar la IP, máscara y estado de la interfaz:
 ip a
 
-# Verificar los servidores DNS entregados por DHCP
+# Verificar los servidores DNS entregados por DHCP:
 cat /etc/resolv.conf
 
-# Verificar la puerta de enlace (Gateway)
+# Verificar la puerta de enlace (Gateway):
 ip route
 ```
 
@@ -73,20 +110,20 @@ ipconfig /all
 
 ---
 
-## 3. Prueba de Reserva Estática por MAC
+## 4. Prueba de Reserva Estática por MAC
 
-### Paso 3.1: Obtener la Dirección MAC del Cliente
+### Paso 4.1: Obtener la Dirección MAC del Cliente
 * **En Debian XFCE (Linux):**
   ```bash
   ip link show
   ```
-  Busca tu interfaz (ej. `ens33` o `eth0`) y copia el valor de `link/ether` (ejemplo: `00:0c:29:4f:8a:12`).
+  Busca tu interfaz (ej. `ens33` o `eth0`) y copia el valor de `link/ether` (ejemplo: `00:0c:29:e6:8a:3a`).
 * **En Windows:**
   ```cmd
   getmac /v
   ```
 
-### Paso 3.2: Configurar la Reserva en Debian Server
+### Paso 4.2: Configurar la Reserva en Debian Server
 Edita `/etc/dhcp/dhcpd.conf`:
 ```bash
 sudo nano /etc/dhcp/dhcpd.conf
@@ -94,7 +131,7 @@ sudo nano /etc/dhcp/dhcpd.conf
 En el bloque `host cliente-vip`, coloca la dirección MAC que obtuviste:
 ```text
 host cliente-vip {
-    hardware ethernet 00:0c:29:4f:8a:12;  # <-- Tu MAC real
+    hardware ethernet 00:0c:29:e6:8a:3a;  # <-- MAC real de tu cliente
     fixed-address 192.168.50.25;
 }
 ```
@@ -103,10 +140,11 @@ Reinicia el servicio DHCP:
 sudo systemctl restart isc-dhcp-server
 ```
 
-### Paso 3.3: Renovar IP en la Estación Cliente
+### Paso 4.3: Renovar IP en la Estación Cliente
 * **En Debian XFCE (Linux):**
   ```bash
-  sudo dhclient -r && sudo dhclient -v
+  sudo nmcli networking off && sudo nmcli networking on
+  # O si usas dhclient: sudo dhclient -r && sudo dhclient -v
   ip a
   ```
 * **En Windows:**
@@ -117,7 +155,7 @@ sudo systemctl restart isc-dhcp-server
 
 ---
 
-## 4. Pruebas de Resolución DNS BIND9
+## 5. Pruebas de Resolución DNS BIND9
 
 Ejecuta estas pruebas desde la terminal de tu estación cliente:
 
