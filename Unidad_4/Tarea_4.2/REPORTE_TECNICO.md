@@ -6,7 +6,8 @@
 **Docente:** [Nombre del Docente]  
 **Fecha:** Noviembre 2026  
 **Servidor:** Debian GNU/Linux 12 (Apache2 + PHP 8.2 + MariaDB + vsftpd)  
-**Cliente:** Estación de Trabajo Cliente (Navegador Web + FileZilla / Consola FTP)  
+**Cliente:** Debian GNU/Linux 12 (XFCE Desktop con Firefox y FileZilla) / Windows  
+**Hipervisor:** VMware Workstation (LAN Segment: `Lab-Red`)  
 
 ---
 
@@ -24,9 +25,9 @@ El objetivo de este reporte es documentar el despliegue del stack LAMP (Linux, A
 
 ```mermaid
 flowchart LR
-    subgraph Cliente["Estación de Trabajo Cliente"]
-        Browser["Navegador Web\n(Chrome / Firefox)"]
-        FTPClient["Cliente FTP / FileZilla"]
+    subgraph Cliente["Estación de Trabajo Cliente: Debian XFCE"]
+        Browser["Navegador Web Firefox"]
+        FTPClient["FileZilla / Terminal FTP"]
     end
 
     subgraph DebianServer["Debian GNU/Linux Server (192.168.50.10)"]
@@ -116,7 +117,7 @@ flowchart LR
 ---
 
 ### 📸 Evidencia 2: Navegación Segura HTTPS y Portal Dinámico PHP/MariaDB
-* **Acción en el Cliente:** Abrir el navegador en `https://www.empresa.local`.
+* **Acción en el Cliente (Debian XFCE / Windows):** Abrir Firefox o Chrome e ingresar a `https://www.empresa.local`.
 * **Qué debe verse:** La página web corporativa mostrando el banner azul de **🔒 HTTPS (Cifrado Activo)**, la versión de PHP detectada y el recuadro verde con la leyenda **Conectado exitosamente a MariaDB**.
 * **Espacio para la captura en tu documento:**
   > `[INSERTAR AQUÍ CAPTURA 2: Navegación web en https://www.empresa.local]`  
@@ -148,8 +149,8 @@ flowchart LR
 ---
 
 ### 📸 Evidencia 5: Bloqueo de Acceso Anónimo en vsftpd
-* **Comando en el Cliente (Consola CMD/Terminal):**
-  ```cmd
+* **Comando en el Cliente (Terminal Linux o Consola Windows):**
+  ```bash
   ftp 192.168.50.10
   ```
   Ingresar usuario: `anonymous` (o dejar contraseña vacía).
@@ -161,11 +162,11 @@ flowchart LR
 ---
 
 ### 📸 Evidencia 6: Demostración de Enjaulamiento (Chroot Jail) y Transferencia
-* **Comandos en el Cliente (Consola FTP o FileZilla):**
+* **Acción en el Cliente (Terminal FTP o FileZilla):**
   - Iniciar sesión con `ftpuser` y contraseña `Alumno123!`.
   - Ejecutar `pwd` (muestra `/`).
   - Ejecutar `cd ..`, `cd /etc` o `cd /var` (muestra `550 Failed to change directory`).
-  - Ingresar a `cd archivos`, listar con `dir`, descargar archivo de prueba con `get` y subir uno nuevo con `put`.
+  - Ingresar a `cd archivos`, listar con `ls` o `dir`, descargar archivo de prueba con `get` y subir uno nuevo con `put`.
 * **Qué debe verse:** El confinamiento dentro de la jaula chroot donde la raíz es virtualizada, la denegación de escape y la subida/descarga exitosa con código `226 Transfer complete`.
 * **Espacio para la captura en tu documento:**
   > `[INSERTAR AQUÍ CAPTURA 6: Verificación de Chroot Jail y transferencia de archivos]`  
@@ -185,4 +186,3 @@ flowchart LR
 
 * **Repositorio Público de GitHub:** `https://github.com/[Tu_Usuario]/[Tu_Repositorio]/tree/main/Unidad_4/Tarea_4.2`
 * **Video Demostrativo en YouTube:** `https://youtu.be/[ID_DE_TU_VIDEO]`
-

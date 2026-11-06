@@ -2,19 +2,18 @@
 
 **Materia:** Administración de Servidores  
 **Unidad 4:** Servidores DNS, Web, FTP, DHCP, Correos  
-**Sistema Operativo:** Debian GNU/Linux Server  
-**Hipervisor:** VMware Workstation  
-**Estación Cliente:** Adaptador virtual VMware VMnet1 en Windows Host  
+**Servidor:** Debian GNU/Linux 12 (Server)  
+**Cliente:** Debian GNU/Linux 12 (XFCE Desktop con Firefox, FileZilla y Thunderbird)  
+**Hipervisor:** VMware Workstation (Red aislada: LAN Segment `Lab-Red`)  
+**Soporte Multiplataforma:** Manuales con comandos listos para clientes Linux y Windows  
 
 ---
 
 ## Estructura del Repositorio
 
-El proyecto se encuentra organizado estrictamente bajo las directivas requeridas para la entrega:
-
 ```
 .
-├── GUIA_INTEGRAL_VMWARE_Y_DEBIAN.md   <-- Configuración de red en VMware y Debian Server
+├── GUIA_INTEGRAL_VMWARE_Y_DEBIAN.md   <-- Configuración de red en VMware (LAN Segment)
 └── Unidad_4/
     ├── Tarea_4.1/                      <-- Servicios de Infraestructura Base: DHCP y DNS BIND9
     │   ├── dhcpd.conf                  (Configuración ISC-DHCP-Server con exclusiones y reserva MAC)
@@ -23,8 +22,9 @@ El proyecto se encuentra organizado estrictamente bajo las directivas requeridas
     │   ├── named.conf.local            (Declaración de zonas directa e inversa)
     │   ├── db.empresa.local            (Zona directa con registros A, CNAME, MX y SPF)
     │   ├── db.192.168.50               (Zona inversa con registros PTR)
-    │   ├── MANUAL_PRUEBAS.md           (Guía de comandos de validación para servidor y cliente)
-    │   ├── GUION_VIDEO.md              (Guion detallado para video de YouTube con webcam)
+    │   ├── MANUAL_PRUEBAS.md           (Comandos duales para Linux y Windows)
+    │   ├── GUION_VIDEO.md              (Guion para video en YouTube con Debian XFCE y webcam)
+    │   ├── REPORTE_TECNICO.md          (Memoria técnica con guía de 6 capturas de pantalla)
     │   └── README.md
     │
     ├── Tarea_4.2/                      <-- Stack Web Seguro (HTTPS) y Transferencia FTP (vsftpd)
@@ -34,8 +34,9 @@ El proyecto se encuentra organizado estrictamente bajo las directivas requeridas
     │   ├── vsftpd.conf                 (Configuración segura de vsftpd con jaula chroot)
     │   ├── index.php                   (Página web dinámica con reporte de seguridad y MariaDB)
     │   ├── db_test.php                 (Script de prueba de consulta SQL en formato JSON)
-    │   ├── MANUAL_PRUEBAS.md           (Guía de pruebas para VirtualHost, SSL y jaula chroot)
-    │   ├── GUION_VIDEO.md              (Guion para video de YouTube con webcam)
+    │   ├── MANUAL_PRUEBAS.md           (Comandos duales para Linux y Windows)
+    │   ├── GUION_VIDEO.md              (Guion para video en YouTube con navegador y FileZilla)
+    │   ├── REPORTE_TECNICO.md          (Memoria técnica con guía de 6 capturas de pantalla)
     │   └── README.md
     │
     └── Tarea_4.3/                      <-- Servidor de Correo Electrónico (Postfix + Dovecot)
@@ -47,8 +48,9 @@ El proyecto se encuentra organizado estrictamente bajo las directivas requeridas
         ├── 10-ssl.conf                 (Cifrado SSL/TLS para IMAP)
         ├── 10-master.conf              (Socket UNIX de autenticación Postfix-Dovecot)
         ├── crear_buzones.sh            (Script de creación de usuarios y estructura Maildir)
-        ├── MANUAL_PRUEBAS.md           (Trazabilidad con tail -f en tiempo real y pruebas MUA)
-        ├── GUION_VIDEO.md              (Guion para video de YouTube con webcam)
+        ├── MANUAL_PRUEBAS.md           (Comandos duales para Linux y Windows)
+        ├── GUION_VIDEO.md              (Guion para video en YouTube con Thunderbird y logs en vivo)
+        ├── REPORTE_TECNICO.md          (Memoria técnica con diagrama de mensajería y capturas)
         └── README.md
 ```
 
@@ -64,4 +66,3 @@ El proyecto se encuentra organizado estrictamente bajo las directivas requeridas
 - **Exclusión DHCP:** `192.168.50.150` - `192.168.50.160`
 - **Reserva Estática MAC:** `192.168.50.25`
 - **Reenviadores DNS (Forwarders):** `8.8.8.8` y `1.1.1.1`
-

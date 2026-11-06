@@ -1,115 +1,130 @@
-# Guía Integral: Configuración de Red en VMware Workstation y Debian Server
+# Guía Integral: Configuración de Red en VMware para Debian Server y Debian XFCE Cliente
 
-Esta guía te muestra exactamente cómo configurar el entorno en tu máquina física Windows y tu máquina virtual Debian Server en VMware para que todos los servicios funcionen a la perfección y tu computadora Windows funcione como la estación cliente de pruebas sin afectar tu conexión a Internet habitual.
+Esta guía explica la configuración de red en **VMware Workstation** para interconectar tu **Debian Server** (servidor de servicios) y tu **Debian XFCE** (estación de trabajo cliente con interfaz gráfica).
 
 ---
 
-## 1. Configuración de Red en VMware Workstation (En Windows)
+## 1. Arquitectura de Conexión en VMware
 
-VMware crea adaptadores virtuales en Windows. Usaremos **VMnet1 (Host-Only)** como la red corporativa del laboratorio (`192.168.50.0/24`).
+Utilizaremos la función **LAN Segment** (o *Host-Only*) de VMware. Los LAN Segments son redes virtuales privadas completamente aisladas de tu máquina física y de tu router WiFi, lo que garantiza que:
+- El servidor DHCP que montemos en Debian Server solo entregará direcciones a la máquina Debian XFCE.
+- No existirá ninguna interferencia ni corte de señal en tu red doméstica.
+- Ambas máquinas se comunicarán a velocidad de bus virtual (máximo rendimiento).
 
-### Paso 1.1: Desactivar el DHCP interno de VMware en VMnet1
-Para que sea tu servidor Debian el que reparta las direcciones IP y no VMware:
-1. Abre **VMware Workstation**.
-2. En la barra superior, haz clic en **Edit** > **Virtual Network Editor...** (si te pide permisos de administrador, presiona **Change Settings** en la esquina inferior).
-3. Selecciona la red **VMnet1** (tipo *Host-only*).
-4. En la parte inferior:
-   - **DESMARCA** la casilla: `[ ] Use local DHCP service to distribute IP address to VMs`.
-   - En **Subnet IP**, escribe: `192.168.50.0`
-   - En **Subnet mask**, escribe: `255.255.255.0`
-5. Haz clic en **Apply** y luego en **OK**.
-
-```
-+--------------------------------------------------------------+
-| VMware Virtual Network Editor                                |
-| VMnet1: Host-only                                            |
-| [ ] Connect a host virtual adapter to this network (MARCADO) |
-| [ ] Use local DHCP service... (DESMARCADO OBLIGATORIO)       |
-| Subnet IP: 192.168.50.0      Subnet mask: 255.255.255.0      |
-+--------------------------------------------------------------+
+```mermaid
+flowchart TD
+    subgraph Host["Equipo Físico (Windows Host)"]
+        subgraph VMware["VMware Workstation"]
+            subgraph LANSegment["LAN Segment: 'Lab-Red' (192.168.50.0/24)"]
+                ServerNIC2["Debian Server (Interfaz ens37)\nIP Estática: 192.168.50.10/24"]
+                ClientNIC1["Debian XFCE Cliente (Interfaz ens33)\nIP Dinámica por DHCP\nNavegador Firefox, FileZilla, Thunderbird"]
+            end
+            ServerNIC1["Debian Server (Interfaz ens33)\nAdaptador NAT (Salida a Internet)"]
+        end
+        PhysicalNIC["Tarjeta WiFi / Ethernet Física"]
+    end
+    ServerNIC1 -.-> PhysicalNIC -.-> Internet((Internet))
+    ServerNIC2 <===>|DHCP, DNS, Web, FTP, Correo| ClientNIC1
 ```
 
 ---
 
-## 2. Configuración de Adaptadores en la Máquina Virtual Debian Server
+## 2. Configuración de Adaptadores en VMware
 
-Tu VM Debian necesita dos tarjetas de red:
-- **Adaptador 1 (NAT):** Le da salida a Internet a Debian para poder descargar e instalar paquetes con `apt install`.
-- **Adaptador 2 (Host-only VMnet1):** Conecta a Debian con la red corporativa `192.168.50.0/24` donde escuchará a los clientes.
-
-### Paso 2.1: Asignar adaptadores en VMware
-1. Con la máquina virtual Debian apagada o encendida, haz clic derecho sobre ella en VMware > **Settings...**
-2. **Network Adapter (Adaptador 1):** Selecciona **NAT**.
+### 2.1 En la Máquina Virtual: Debian Server
+Debian Server necesita dos adaptadores de red:
+1. Con la máquina apagada o encendida, haz clic derecho sobre la VM > **Settings...**
+2. **Network Adapter (Adaptador 1):** Configúralo en **NAT**. Esto le da salida a internet para `apt update`, `apt install` y `git pull`.
 3. Haz clic en **Add...** > selecciona **Network Adapter** > **Finish**.
-4. En este nuevo **Network Adapter 2**: selecciona **Custom: Specific virtual network** y elige **VMnet1 (Host-only)**.
-5. Haz clic en **OK**.
+4. En este nuevo **Network Adapter 2**:
+   - Selecciona **LAN Segment**.
+   - Haz clic en el botón **LAN Segments...**
+   - Escribe el nombre: `Lab-Red` y haz clic en OK.
+   - Asegúrate de que quede seleccionado `Lab-Red`.
+5. Haz clic en **OK** para guardar.
+
+### 2.2 En la Máquina Virtual: Debian XFCE (Cliente)
+Debian XFCE solo necesita una tarjeta conectada al laboratorio:
+1. Haz clic derecho sobre Debian XFCE en VMware > **Settings...**
+2. **Network Adapter:** Selecciona **LAN Segment** y elige `Lab-Red`.
+3. *(Opcional temporal):* Si necesitas instalar herramientas en el cliente (como FileZilla o Thunderbird), puedes ponerla temporalmente en **NAT**, ejecutar `sudo apt update && sudo apt install -y filezilla thunderbird dnsutils ftp curl`, y luego regresarla a **LAN Segment `Lab-Red`**.
 
 ---
 
-## 3. Configuración de Direccionamiento IP Estático en Debian Server
+## 3. Configuración de Red en Debian Server (IP Fija)
 
-Inicia tu Debian Server y abre su consola.
+Inicia tu Debian Server y abre la terminal.
 
-### Paso 3.1: Identificar las interfaces de red
-Ejecuta:
+### Paso 3.1: Identificar las dos tarjetas de red
 ```bash
 ip a
 ```
-Verás dos interfaces además de `lo`:
-- La primera (ej. `ens33` o `enp0s3`) tiene una IP del tipo `192.168.x.x` asignada por el NAT de VMware (con acceso a internet).
-- La segunda (ej. `ens37` o `ens38`) es la que acabamos de agregar para VMnet1 y no tiene IP asignada aún.
+Identifica:
+- La tarjeta conectada a NAT (ejemplo: `ens33`).
+- La tarjeta conectada a `Lab-Red` (ejemplo: `ens37` o `ens38`).
 
-### Paso 3.2: Asignar IP fija `192.168.50.10` a la segunda interfaz
+### Paso 3.2: Configurar IP estática `192.168.50.10`
 Edita el archivo de interfaces:
 ```bash
 sudo nano /etc/network/interfaces
 ```
-Agrega al final del archivo (sustituyendo `ens37` por el nombre real de tu segunda tarjeta):
-
+Añade al final:
 ```text
-# Interfaz Corporativa del Laboratorio (VMnet1)
+# Interfaz corporativa conectada a LAN Segment (Lab-Red)
 auto ens37
 iface ens37 inet static
     address 192.168.50.10
     netmask 255.255.255.0
     broadcast 192.168.50.255
 ```
-Guarda los cambios con `Ctrl + O`, presiona Enter y sal con `Ctrl + X`.
+Guarda con `Ctrl + O`, presiona Enter y sal con `Ctrl + X`.
 
-Levanta la interfaz:
+Reinicia el servicio de red:
 ```bash
 sudo ifup ens37
 # O reinicia la red:
 sudo systemctl restart networking
 ```
-Verifica con `ip a` que `ens37` tenga la IP `192.168.50.10`.
-
----
-
-## 4. Cómo transferir los archivos de esta carpeta hacia Debian Server
-
-Puedes copiar fácilmente los archivos generados en este proyecto a tu Debian Server mediante **SCP** (Secure Copy) desde PowerShell en Windows:
-
-```powershell
-# En PowerShell dentro de la carpeta Unidad 4:
-scp -r .\Unidad_4 tu_usuario_debian@192.168.50.10:/home/tu_usuario_debian/
+Verifica que `ens37` tenga la IP `192.168.50.10` con:
+```bash
+ip a show ens37
 ```
-(O usando FileZilla conectándote por SFTP en el puerto 22 con tu usuario de Debian).
 
 ---
 
-## 5. Resumen de Flujo de Trabajo para las Prácticas
+## 4. Preparación de Debian XFCE Cliente
 
-1. **Tarea 4.1 (DHCP y DNS):**
-   - Copias los archivos de `Unidad_4/Tarea_4.1/` a sus rutas en `/etc/dhcp/` y `/etc/bind/`.
-   - Sigues el manual `MANUAL_PRUEBAS.md`.
-   - Grabas el video siguiendo `GUION_VIDEO.md` con tu webcam.
-2. **Tarea 4.2 (Web HTTPS y FTP vsftpd):**
-   - Ejecutas `generar_certificados.sh` en Debian.
-   - Despliegas Apache y vsftpd con los archivos de `Unidad_4/Tarea_4.2/`.
-   - Sigues el manual y grabas el video con `GUION_VIDEO.md`.
-3. **Tarea 4.3 (Correo Postfix + Dovecot):**
-   - Ejecutas `crear_buzones.sh` en Debian.
-   - Copias configuraciones de Postfix y Dovecot de `Unidad_4/Tarea_4.3/`.
-   - Monitoreas con `tail -f /var/log/mail.log` y grabas el video con `GUION_VIDEO.md`.
+Inicia tu máquina con Debian XFCE.
 
+### Paso 4.1: Instalación de Paquetes de Prueba en el Cliente
+Abre la terminal de Debian XFCE:
+```bash
+sudo apt update
+sudo apt install -y dnsutils ftp filezilla thunderbird curl
+```
+
+### Paso 4.2: Configuración para Obtener IP por DHCP
+Debian XFCE gestiona la red mediante **NetworkManager**:
+- En la esquina superior/inferior derecha, en el ícono de red, verifica que la conexión de cable esté en modo **Automático (DHCP)**.
+- O por terminal, simplemente solicita IP con:
+  ```bash
+  sudo dhclient -r && sudo dhclient -v
+  ```
+
+---
+
+## 5. Tabla de Comandos Rápidos: Linux vs. Windows
+
+| Acción de Prueba | En Cliente Linux (Debian XFCE) | En Cliente Windows (CMD/PowerShell) |
+| :--- | :--- | :--- |
+| **Liberar IP** | `sudo dhclient -r` | `ipconfig /release` |
+| **Solicitar IP por DHCP** | `sudo dhclient -v` | `ipconfig /renew` |
+| **Ver IP, Gateway y DNS** | `ip a` / `cat /etc/resolv.conf` | `ipconfig /all` |
+| **Ver Dirección MAC** | `ip link show` | `getmac` o `Get-NetAdapter` |
+| **Consultar DNS Directo** | `nslookup www.empresa.local 192.168.50.10` | `nslookup www.empresa.local 192.168.50.10` |
+| **Consultar Registro MX** | `dig @192.168.50.10 empresa.local MX` | `nslookup -type=mx empresa.local 192.168.50.10` |
+| **Consultar DNS Inverso** | `dig @192.168.50.10 -x 192.168.50.10` | `nslookup 192.168.50.10 192.168.50.10` |
+| **Conexión Web HTTPS** | Firefox: `https://www.empresa.local` | Chrome/Edge: `https://www.empresa.local` |
+| **Conexión FTP Consola** | `ftp 192.168.50.10` | `ftp 192.168.50.10` |
+| **Cliente FTP Gráfico** | FileZilla (GUI) | FileZilla (GUI) |
+| **Cliente de Correo** | Mozilla Thunderbird (GUI) | Mozilla Thunderbird (GUI) |

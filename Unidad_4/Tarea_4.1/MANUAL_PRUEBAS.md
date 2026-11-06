@@ -1,148 +1,175 @@
 # Manual de Pruebas: Tarea 4.1 (Servidor DHCP y DNS BIND9)
 
-Este manual contiene los pasos y comandos exactos para verificar la correcta implementación del servidor DHCP y DNS en **Debian Server**, utilizando como estación cliente el adaptador **VMware Network Adapter VMnet1** de tu máquina física Windows (o una VM cliente).
+Este manual contiene los pasos y comandos exactos para verificar la correcta implementación del servidor DHCP y DNS en **Debian Server**, probado desde una estación cliente con **Debian XFCE** (o Windows).
 
 ---
 
-## 1. Verificación Inicial en el Servidor Debian
+## 1. Verificación Inicial en Debian Server
 
-Antes de realizar pruebas desde el cliente, debemos asegurarnos de que la sintaxis de las configuraciones sea correcta y que los servicios estén activos.
+Antes de realizar pruebas desde el cliente, validamos la integridad y sintaxis en el servidor:
 
-### Paso 1.1: Validar sintaxis de DNS BIND9
-Ejecuta en la terminal de Debian:
 ```bash
-# Validar archivo principal de opciones y sintaxis general
+# 1.1 Validar sintaxis general de BIND9
 sudo named-checkconf
 
-# Validar archivo de zona directa
+# 1.2 Validar archivo de zona directa
 sudo named-checkzone empresa.local /etc/bind/zones/db.empresa.local
 
-# Validar archivo de zona inversa
+# 1.3 Validar archivo de zona inversa
 sudo named-checkzone 50.168.192.in-addr.arpa /etc/bind/zones/db.192.168.50
-```
-> **Resultado esperado:** Ambos comandos de zona deben devolver `OK` con el número de serie cargado (ej. `loaded serial 2026110501`). Si no hay salida en `named-checkconf`, significa que no hay errores.
 
-### Paso 1.2: Validar sintaxis de DHCP
-```bash
+# 1.4 Validar sintaxis de DHCP
 sudo dhcpd -t -cf /etc/dhcp/dhcpd.conf
-```
-> **Resultado esperado:** No debe marcar errores de sintaxis en ninguna línea.
 
-### Paso 1.3: Reiniciar y comprobar estado de los servicios
-```bash
-sudo systemctl restart bind9
-sudo systemctl status bind9 --no-pager
-
-sudo systemctl restart isc-dhcp-server
-sudo systemctl status isc-dhcp-server --no-pager
+# 1.5 Reiniciar y comprobar estado activo de ambos servicios
+sudo systemctl restart bind9 && sudo systemctl status bind9 --no-pager
+sudo systemctl restart isc-dhcp-server && sudo systemctl status isc-dhcp-server --no-pager
 ```
-> **Resultado esperado:** Ambos servicios deben mostrar `active (running)` en color verde.
+> **Resultado esperado:** Ambas zonas deben responder `OK` con el número de serie cargado y ambos servicios deben figurar en estado `active (running)`.
 
 ---
 
-## 2. Pruebas de Funcionamiento desde el Cliente (Windows con VMnet1)
+## 2. Pruebas de Asignación de IP Dinámica (DHCP)
 
-Abre **PowerShell** o **Símbolo del sistema (CMD)** como Administrador en tu Windows.
-
-### Paso 2.1: Comprobar asignación de IP por DHCP (Rango Dinámico)
-Libera y renueva la concesión IP del adaptador virtual de VMware:
-
-```powershell
-# En PowerShell:
-ipconfig /release "VMware Network Adapter VMnet1"
-ipconfig /renew "VMware Network Adapter VMnet1"
-ipconfig /all
-```
-
-> **Verificación:**
-> - Busca en la salida la sección `Adaptador de Ethernet VMware Network Adapter VMnet1`.
-> - **Dirección IPv4:** Debe estar dentro del rango dinámico configurado: entre `192.168.50.100` y `192.168.50.149` (o entre `161` y `200`).
-> - **Máscara de subred:** `255.255.255.0`.
-> - **Puerta de enlace predeterminada:** `192.168.50.1`.
-> - **Servidores DNS:** `192.168.50.10`.
-> - **Servidor DHCP:** `192.168.50.10`.
-
-### Paso 2.2: Monitoreo en vivo de la concesión DHCP en el Servidor Debian
-Mientras ejecutas el `/renew` en Windows, mantén este comando abierto en Debian:
+### Paso 2.1: En el Servidor Debian (Monitoreo en Vivo de Logs)
+Abre una terminal en Debian Server y ejecuta:
 ```bash
 sudo tail -f /var/log/syslog | grep dhcpd
 ```
-> **Resultado visible en pantalla:** Verás la secuencia DORA:
-> 1. `DHCPDISCOVER from <MAC> via ens37`
-> 2. `DHCPOFFER on 192.168.50.10x to <MAC> via ens37`
-> 3. `DHCPREQUEST for 192.168.50.10x from <MAC> via ens37`
-> 4. `DHCPACK on 192.168.50.10x to <MAC> via ens37`
+
+### Paso 2.2: En la Estación Cliente (Solicitud de IP)
+
+#### 🐧 Opción A: En Cliente Linux (Debian XFCE)
+Abre la terminal en Debian XFCE:
+```bash
+# Liberar la IP actual
+sudo dhclient -r
+
+# Solicitar nueva IP por DHCP con reporte detallado (-v)
+sudo dhclient -v
+
+# Verificar la IP, máscara y estado de la interfaz
+ip a
+
+# Verificar los servidores DNS entregados por DHCP
+cat /etc/resolv.conf
+
+# Verificar la puerta de enlace (Gateway)
+ip route
+```
+
+#### 🪟 Opción B: En Cliente Windows (CMD o PowerShell)
+```powershell
+ipconfig /release
+ipconfig /renew
+ipconfig /all
+```
+
+> **Verificación del Resultado:**
+> - En el **Servidor**, el log mostrará la secuencia DORA: `DHCPDISCOVER` -> `DHCPOFFER` -> `DHCPREQUEST` -> `DHCPACK`.
+> - En el **Cliente**, la IP asignada debe estar dentro del rango: `192.168.50.100` a `192.168.50.149`.
+> - La puerta de enlace debe ser: `192.168.50.1`.
+> - El servidor DNS recibido debe ser: `192.168.50.10`.
 
 ---
 
 ## 3. Prueba de Reserva Estática por MAC
 
-### Paso 3.1: Obtener la dirección física (MAC) del adaptador cliente
-En Windows ejecuta:
-```powershell
-Get-NetAdapter -Name "*VMnet1*" | Select-Object Name, MacAddress
-```
-Copia el valor de `MacAddress` (ejemplo: `00-50-56-C0-00-01`).
+### Paso 3.1: Obtener la Dirección MAC del Cliente
+* **En Debian XFCE (Linux):**
+  ```bash
+  ip link show
+  ```
+  Busca tu interfaz (ej. `ens33` o `eth0`) y copia el valor de `link/ether` (ejemplo: `00:0c:29:4f:8a:12`).
+* **En Windows:**
+  ```cmd
+  getmac /v
+  ```
 
-### Paso 3.2: Registrar la MAC en Debian
+### Paso 3.2: Configurar la Reserva en Debian Server
 Edita `/etc/dhcp/dhcpd.conf`:
 ```bash
 sudo nano /etc/dhcp/dhcpd.conf
 ```
-En el bloque `host cliente-vip`, reemplaza los guiones por dos puntos:
+En el bloque `host cliente-vip`, coloca la dirección MAC que obtuviste:
 ```text
 host cliente-vip {
-    hardware ethernet 00:50:56:c0:00:01;
+    hardware ethernet 00:0c:29:4f:8a:12;  # <-- Tu MAC real
     fixed-address 192.168.50.25;
 }
 ```
-Reinicia el servicio:
+Reinicia el servicio DHCP:
 ```bash
 sudo systemctl restart isc-dhcp-server
 ```
 
-### Paso 3.3: Renovar IP en Windows
-```powershell
-ipconfig /release "VMware Network Adapter VMnet1"
-ipconfig /renew "VMware Network Adapter VMnet1"
-```
-> **Resultado esperado:** La dirección IPv4 asignada a VMnet1 ahora será exactamente: **`192.168.50.25`**.
+### Paso 3.3: Renovar IP en la Estación Cliente
+* **En Debian XFCE (Linux):**
+  ```bash
+  sudo dhclient -r && sudo dhclient -v
+  ip a
+  ```
+* **En Windows:**
+  ```powershell
+  ipconfig /release && ipconfig /renew
+  ```
+> **Resultado esperado:** El servidor reconoce la MAC y le entrega obligatoriamente la IP: **`192.168.50.25`**.
 
 ---
 
-## 4. Pruebas de Resolución DNS (BIND9)
+## 4. Pruebas de Resolución DNS BIND9
 
-Desde la terminal de Windows ejecuta las siguientes consultas contra tu servidor Debian (`192.168.50.10`):
+Ejecuta estas pruebas desde la terminal de tu estación cliente:
 
 ### 4.1 Resolución Directa de Registros Tipo A
-```cmd
-nslookup www.empresa.local 192.168.50.10
-nslookup mail.empresa.local 192.168.50.10
-nslookup ftp.empresa.local 192.168.50.10
-```
-> **Resultado esperado:** Cada consulta debe responder con `Dirección: 192.168.50.10`.
+* **En Linux (Debian XFCE):**
+  ```bash
+  nslookup www.empresa.local 192.168.50.10
+  dig @192.168.50.10 mail.empresa.local A
+  ```
+* **En Windows:**
+  ```cmd
+  nslookup www.empresa.local 192.168.50.10
+  nslookup mail.empresa.local 192.168.50.10
+  ```
+> **Resultado:** Responde con la IP `192.168.50.10`.
 
-### 4.2 Resolución de Alias CNAME
-```cmd
-nslookup web.empresa.local 192.168.50.10
-```
-> **Resultado esperado:** Devuelve el alias indicando: `web.empresa.local canonical name = www.empresa.local`.
+### 4.2 Resolución de Alias Canónico CNAME
+* **En Linux / Windows:**
+  ```bash
+  nslookup web.empresa.local 192.168.50.10
+  ```
+> **Resultado:** Muestra: `web.empresa.local canonical name = www.empresa.local` y dirección `192.168.50.10`.
 
 ### 4.3 Resolución de Registro MX (Servidor de Correo)
-```cmd
-nslookup -type=mx empresa.local 192.168.50.10
-```
-> **Resultado esperado:** `empresa.local MX preference = 10, mail exchanger = mail.empresa.local`.
+* **En Linux (Debian XFCE):**
+  ```bash
+  dig @192.168.50.10 empresa.local MX +short
+  # O con nslookup:
+  nslookup -query=mx empresa.local 192.168.50.10
+  ```
+* **En Windows:**
+  ```cmd
+  nslookup -type=mx empresa.local 192.168.50.10
+  ```
+> **Resultado:** `10 mail.empresa.local.`
 
 ### 4.4 Resolución Inversa (Registro PTR)
-```cmd
-nslookup 192.168.50.10 192.168.50.10
-```
-> **Resultado esperado:** `Nombre: ns1.empresa.local` o `server.empresa.local`.
+* **En Linux (Debian XFCE):**
+  ```bash
+  dig @192.168.50.10 -x 192.168.50.10 +short
+  # O con nslookup:
+  nslookup 192.168.50.10 192.168.50.10
+  ```
+* **En Windows:**
+  ```cmd
+  nslookup 192.168.50.10 192.168.50.10
+  ```
+> **Resultado:** Devuelve el nombre de host: `ns1.empresa.local` o `server.empresa.local`.
 
-### 4.5 Comprobación de Reenviadores (Forwarders hacia Internet)
-```cmd
-nslookup google.com 192.168.50.10
-```
-> **Resultado esperado:** El servidor local reenvía la consulta a `8.8.8.8` y devuelve la IP pública real de Google.
-
+### 4.5 Resolución de Reenviadores Externos (Forwarders)
+* **En Linux / Windows:**
+  ```bash
+  nslookup google.com 192.168.50.10
+  ```
+> **Resultado:** Resuelve la IP pública de Google gracias a los reenviadores (`8.8.8.8` / `1.1.1.1`).

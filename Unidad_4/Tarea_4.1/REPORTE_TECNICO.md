@@ -5,8 +5,9 @@
 **Alumno:** [Nombre del Alumno]  
 **Docente:** [Nombre del Docente]  
 **Fecha:** Noviembre 2026  
-**Sistema Operativo del Servidor:** Debian GNU/Linux 12 (Server)  
-**Sistema Operativo Cliente:** Estación de Trabajo Cliente (Linux Desktop / Windows)  
+**Servidor:** Debian GNU/Linux 12 (Server)  
+**Cliente:** Debian GNU/Linux 12 (XFCE Desktop) / Windows  
+**Hipervisor:** VMware Workstation (LAN Segment: `Lab-Red`)  
 
 ---
 
@@ -26,14 +27,14 @@ La topología del laboratorio opera bajo un esquema cliente/servidor dentro de u
 
 ```mermaid
 flowchart TD
-    subgraph RedLaboratorio["Red Corporativa Aislada: 192.168.50.0/24 (LAN Segment / Host-Only)"]
-        Server["Debian GNU/Linux Server\nIP Fija: 192.168.50.10/24\nServicios: BIND9 DNS + ISC-DHCP-Server"]
-        ClienteDinamico["Estación Cliente (DHCP Dinámico)\nIP Asignada: 192.168.50.100 - 192.168.50.149\nGateway: 192.168.50.1 | DNS: 192.168.50.10"]
-        ClienteReservado["Estación Cliente VIP (Reserva MAC)\nMAC: [Dirección MAC Cliente]\nIP Fija DHCP: 192.168.50.25"]
+    subgraph VMware["Entorno Virtualizado VMware Workstation"]
+        subgraph RedLaboratorio["LAN Segment Aislado: 'Lab-Red' (192.168.50.0/24)"]
+            Server["Debian GNU/Linux 12 Server\nIP Fija: 192.168.50.10/24\nServicios: BIND9 DNS + ISC-DHCP-Server"]
+            ClienteXFCE["Estación Cliente: Debian 12 XFCE\nIP Dinámica (DHCP)\nGateway: 192.168.50.1 | DNS: 192.168.50.10"]
+        end
+        Server -.->|Adaptador NAT (Salida a Internet)| Internet((Internet))
     end
-    Server <-->|Solicitud y Oferta DHCP / Consultas DNS UDP 53| ClienteDinamico
-    Server <-->|Concesión Fija por MAC| ClienteReservado
-    Server -.->|Forwarders UDP 53 (8.8.8.8 / 1.1.1.1)| Internet((Internet))
+    Server <-->|Solicitud y Oferta DHCP / Consultas DNS UDP 53| ClienteXFCE
 ```
 
 ### Tabla del Plan de Direccionamiento IP Corporativo
@@ -42,7 +43,7 @@ flowchart TD
 | :--- | :--- | :--- |
 | **Identificador de Red** | `192.168.50.0` | Segmento de red privado Clase C. |
 | **Máscara de Subred** | `255.255.255.0` (`/24`) | Prefijo de 24 bits, permitiendo 254 hosts útiles. |
-| **Puerta de Enlace (Gateway)** | `192.168.50.1` | Dirección de salida hacia otros segmentos. |
+| **Puerta de Enlace (Gateway)** | `192.168.50.1` | Dirección de salida virtual hacia otros segmentos. |
 | **IP Servidor Debian (DNS/DHCP)** | `192.168.50.10` | IP estática asignada a la interfaz del laboratorio. |
 | **Rango Dinámico DHCP 1** | `192.168.50.100` – `192.168.50.149` | 50 direcciones para clientes dinámicos de oficina. |
 | **Rango Excluido** | `192.168.50.150` – `192.168.50.160` | Rango protegido reservado para impresoras de red. |
@@ -67,15 +68,15 @@ authoritative;
 
 # Subred corporativa con división de rangos y exclusión de IPs
 subnet 192.168.50.0 netmask 255.255.255.0 {
-    range 192.168.50.100 192.168.50.149; # Rango 1
-    range 192.168.50.161 192.168.50.200; # Rango 2 (Excluye .150 al .160)
+    range 192.168.50.100 192.168.50.149; # Rango dinámico 1
+    range 192.168.50.161 192.168.50.200; # Rango dinámico 2 (Excluye .150 al .160)
     option routers 192.168.50.1;
     option broadcast-address 192.168.50.255;
 }
 
-# Reserva estática vinculada a la dirección física (MAC)
+# Reserva estática vinculada a la dirección física (MAC) del cliente
 host cliente-vip {
-    hardware ethernet 00:0c:29:xx:xx:xx; # MAC de la interfaz de red del cliente
+    hardware ethernet 00:0c:29:xx:xx:xx; # MAC del cliente Debian XFCE
     fixed-address 192.168.50.25;
     option host-name "cliente-vip.empresa.local";
 }
@@ -156,25 +157,25 @@ $TTL    86400
 ---
 
 ### 📸 Evidencia 1: Validación de Sintaxis de BIND9 y DHCP en Debian Server
-* **Comando a ejecutar en Debian:**
+* **Comando en Debian Server:**
   ```bash
   sudo named-checkconf
   sudo named-checkzone empresa.local /etc/bind/zones/db.empresa.local
   sudo named-checkzone 50.168.192.in-addr.arpa /etc/bind/zones/db.192.168.50
   sudo dhcpd -t -cf /etc/dhcp/dhcpd.conf
   ```
-* **Qué debe verse:** La respuesta `OK` con el número de serie de ambas zonas DNS y la ausencia de errores en la verificación del archivo de DHCP.
+* **Qué debe verse:** La respuesta `OK` con el número de serie de ambas zonas DNS y la ausencia de errores en la sintaxis de DHCP.
 * **Espacio para la captura en tu documento:**
   > `[INSERTAR AQUÍ CAPTURA 1: Verificación de sintaxis de BIND9 y DHCP]`  
   > *Figura 1.1: Comprobación de integridad de los archivos de zona directa, inversa y configuración dhcpd.*
 
 ---
 
-### 📸 Evidencia 2: Solicitud y Concesión de IP Dinámica en la Estación Cliente
-* **Comando a ejecutar en el Cliente:**
-  - En Linux: `sudo dhclient -r && sudo dhclient -v` seguido de `ip a`
-  - En Windows: `ipconfig /release && ipconfig /renew` seguido de `ipconfig /all`
-* **Qué debe verse:** La dirección IP asignada dentro del rango `192.168.50.100 - 192.168.50.149`, con máscara `255.255.255.0`, Gateway `192.168.50.1` y DNS `192.168.50.10`.
+### 📸 Evidencia 2: Solicitud y Concesión de IP Dinámica en el Cliente
+* **Comandos en el Cliente:**
+  - **En Debian XFCE (Linux):** `sudo dhclient -r && sudo dhclient -v` seguido de `ip a` y `cat /etc/resolv.conf`.
+  - *(En Windows):* `ipconfig /release && ipconfig /renew` seguido de `ipconfig /all`.
+* **Qué debe verse:** La dirección IP asignada dentro del rango `192.168.50.100 - 192.168.50.149`, con máscara `255.255.255.0` (`/24`), Gateway `192.168.50.1` y DNS `192.168.50.10`.
 * **Espacio para la captura en tu documento:**
   > `[INSERTAR AQUÍ CAPTURA 2: Asignación dinámica de IP por DHCP en el cliente]`  
   > *Figura 1.2: Parámetros de red recibidos automáticamente desde el servidor Debian.*
@@ -182,7 +183,7 @@ $TTL    86400
 ---
 
 ### 📸 Evidencia 3: Registro de Logs en Tiempo Real de DHCP (Proceso DORA)
-* **Comando a ejecutar en Debian:**
+* **Comando en Debian Server:**
   ```bash
   sudo tail -n 25 /var/log/syslog | grep dhcpd
   ```
@@ -194,8 +195,10 @@ $TTL    86400
 ---
 
 ### 📸 Evidencia 4: Demostración de la Reserva Estática por Dirección MAC
-* **Comando a ejecutar en Debian:** Mostrar el bloque `host cliente-vip` de `/etc/dhcp/dhcpd.conf`.
-* **Comando a ejecutar en el Cliente:** Renovar la concesión (`dhclient -v` o `ipconfig /renew`) y mostrar la IP obtenida.
+* **Comando en Debian Server:** Mostrar el bloque `host cliente-vip` de `/etc/dhcp/dhcpd.conf`.
+* **Comando en el Cliente:**
+  - **En Linux (Debian XFCE):** `sudo dhclient -r && sudo dhclient -v` y `ip a show <interfaz>`
+  - *(En Windows):* `ipconfig /renew` y `ipconfig /all`
 * **Qué debe verse:** La coincidencia exacta entre la dirección física MAC configurada y la entrega garantizada de la IP fija `192.168.50.25`.
 * **Espacio para la captura en tu documento:**
   > `[INSERTAR AQUÍ CAPTURA 4: Comprobación de reserva estática por dirección MAC]`  
@@ -204,12 +207,19 @@ $TTL    86400
 ---
 
 ### 📸 Evidencia 5: Resolución de Nombres Directa con nslookup y dig
-* **Comandos a ejecutar en el Cliente:**
-  ```bash
-  nslookup www.empresa.local 192.168.50.10
-  nslookup web.empresa.local 192.168.50.10
-  dig @192.168.50.10 empresa.local MX
-  ```
+* **Comandos en el Cliente:**
+  - **En Linux (Debian XFCE):**
+    ```bash
+    nslookup www.empresa.local 192.168.50.10
+    nslookup web.empresa.local 192.168.50.10
+    dig @192.168.50.10 empresa.local MX +short
+    ```
+  - *(En Windows):*
+    ```cmd
+    nslookup www.empresa.local 192.168.50.10
+    nslookup web.empresa.local 192.168.50.10
+    nslookup -type=mx empresa.local 192.168.50.10
+    ```
 * **Qué debe verse:**
   - `www.empresa.local` resolviendo a `192.168.50.10`.
   - El alias CNAME `web.empresa.local` apuntando canónicamente a `www.empresa.local`.
@@ -221,11 +231,17 @@ $TTL    86400
 ---
 
 ### 📸 Evidencia 6: Resolución Inversa (PTR) y Reenvío Externo (Forwarder)
-* **Comandos a ejecutar en el Cliente:**
-  ```bash
-  nslookup 192.168.50.10 192.168.50.10
-  nslookup google.com 192.168.50.10
-  ```
+* **Comandos en el Cliente:**
+  - **En Linux (Debian XFCE):**
+    ```bash
+    nslookup 192.168.50.10 192.168.50.10
+    nslookup google.com 192.168.50.10
+    ```
+  - *(En Windows):*
+    ```cmd
+    nslookup 192.168.50.10 192.168.50.10
+    nslookup google.com 192.168.50.10
+    ```
 * **Qué debe verse:**
   - La IP `192.168.50.10` traduciéndose de regreso a `ns1.empresa.local`.
   - La consulta a `google.com` resolviendo correctamente gracias a los reenviadores públicos (`8.8.8.8` y `1.1.1.1`).
@@ -240,7 +256,7 @@ $TTL    86400
 La implementación de los servicios base de infraestructura ha demostrado la interdependencia crítica entre el protocolo de configuración dinámica de host (DHCP) y el sistema de nombres de dominio (DNS):
 1. **Eficiencia en la Administración:** El servidor DHCP elimina la intervención manual y los posibles conflictos por IP duplicadas, asegurando además la exclusión de direcciones para dispositivos de red fijos.
 2. **Robustez en la Resolución Local:** El servidor BIND9 no solo resuelve de forma autoritativa la red corporativa privada `empresa.local`, sino que mantiene la continuidad de navegación hacia la red exterior mediante políticas de reenviadores.
-3. **Validación del Esquema Cliente/Servidor:** Ambas tecnologías fueron probadas y validadas con éxito desde la estación cliente, cumpliendo íntegramente con los criterios de desempeño exigidos en la Tarea 4.1.
+3. **Validación del Esquema Cliente/Servidor:** Ambas tecnologías fueron probadas y validadas con éxito desde la estación cliente con Debian XFCE, cumpliendo íntegramente con los criterios de desempeño exigidos en la Tarea 4.1.
 
 ---
 
@@ -248,4 +264,3 @@ La implementación de los servicios base de infraestructura ha demostrado la int
 
 * **Repositorio Público de GitHub:** `https://github.com/[Tu_Usuario]/[Tu_Repositorio]/tree/main/Unidad_4/Tarea_4.1`
 * **Video Demostrativo en YouTube:** `https://youtu.be/[ID_DE_TU_VIDEO]`
-

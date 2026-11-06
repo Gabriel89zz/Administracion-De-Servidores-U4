@@ -6,7 +6,8 @@
 **Docente:** [Nombre del Docente]  
 **Fecha:** Noviembre 2026  
 **Servidor:** Debian GNU/Linux 12 (Postfix + Dovecot + TLS)  
-**Cliente:** Estación de Trabajo Cliente (Mozilla Thunderbird / Swaks CLI)  
+**Cliente:** Debian GNU/Linux 12 (XFCE Desktop con Mozilla Thunderbird) / Windows  
+**Hipervisor:** VMware Workstation (LAN Segment: `Lab-Red`)  
 
 ---
 
@@ -27,11 +28,11 @@ El siguiente diagrama detalla la ruta de punta a punta que sigue un correo desde
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Remitente as usuario1 (MUA Cliente)
+    actor Remitente as usuario1 (Debian XFCE)
     participant Postfix as Postfix MTA (SMTP :25/:587)
     participant DNS as BIND9 DNS (MX & SPF)
     participant Dovecot as Dovecot MDA (Buzón / IMAP :993)
-    actor Destinatario as usuario2 (MUA Cliente)
+    actor Destinatario as usuario2 (Debian XFCE)
 
     Note over Remitente,Postfix: Fase 1: Envío SMTP y Verificación de Identidad
     Remitente->>Postfix: Conexión SMTP / STARTTLS
@@ -80,12 +81,19 @@ sequenceDiagram
 ---
 
 ### 📸 Evidencia 1: Resolución de Registros DNS de Correo (MX, A y SPF)
-* **Comandos en la consola (Debian o Cliente):**
-  ```bash
-  nslookup -type=mx empresa.local 192.168.50.10
-  nslookup mail.empresa.local 192.168.50.10
-  nslookup -type=txt empresa.local 192.168.50.10
-  ```
+* **Comandos en el Cliente:**
+  - **En Linux (Debian XFCE):**
+    ```bash
+    dig @192.168.50.10 empresa.local MX +short
+    nslookup mail.empresa.local 192.168.50.10
+    dig @192.168.50.10 empresa.local TXT +short
+    ```
+  - *(En Windows):*
+    ```cmd
+    nslookup -type=mx empresa.local 192.168.50.10
+    nslookup mail.empresa.local 192.168.50.10
+    nslookup -type=txt empresa.local 192.168.50.10
+    ```
 * **Qué debe verse:**
   - El registro MX devolviendo `mail.empresa.local` con preferencia 10.
   - El registro A de `mail.empresa.local` apuntando a `192.168.50.10`.
@@ -109,13 +117,13 @@ sequenceDiagram
 
 ---
 
-### 📸 Evidencia 3: Transacción SMTP de Envío de Correo (Swaks / Cliente MUA)
-* **Acción:**
+### 📸 Evidencia 3: Transacción SMTP de Envío de Correo (Swaks / Thunderbird)
+* **Acción en el Cliente:**
   - Si usas `swaks`:
     ```bash
     swaks --to usuario2@empresa.local --from usuario1@empresa.local --server 192.168.50.10 --header "Subject: Prueba de Entrega - Unidad 4" --body "Comprobando la entrega exitosa del correo electronico."
     ```
-  - Si usas Thunderbird: redactar el correo desde `usuario1` hacia `usuario2` con el asunto indicado y presionar **Enviar**.
+  - Si usas Thunderbird en Debian XFCE: redactar el correo desde `usuario1` hacia `usuario2` con el asunto indicado y presionar **Enviar**.
 * **Qué debe verse:** La salida del comando mostrando el apretón de manos SMTP, la cabecera `MAIL FROM`, `RCPT TO` y la respuesta final del servidor `250 2.0.0 Ok: queued as ...`.
 * **Espacio para la captura en tu documento:**
   > `[INSERTAR AQUÍ CAPTURA 3: Diálogo SMTP de envío de correo exitoso]`  
@@ -123,7 +131,7 @@ sequenceDiagram
 
 ---
 
-### 📸 Evidencia 4: Trazabilidad en Tiempo Real en `/var/log/mail.log` (Evidencia Crítica)
+### 📸 Evidencia 4: Trazabilidad en Tiempo Real en `/var/log/mail.log` (Evidencia Clave)
 * **Comando en Debian Server:**
   ```bash
   sudo tail -n 20 /var/log/mail.log
@@ -154,12 +162,12 @@ sequenceDiagram
 
 ---
 
-### 📸 Evidencia 6: Visualización del Correo en Cliente MUA (Mozilla Thunderbird)
-* **Acción en el Cliente:**
+### 📸 Evidencia 6: Visualización del Correo en Cliente MUA (Mozilla Thunderbird en Debian XFCE)
+* **Acción en el Cliente Debian XFCE:**
   - Abrir Mozilla Thunderbird con la cuenta de `usuario2@empresa.local`.
   - Mostrar la **Bandeja de entrada** con el correo recibido.
   - Abrir el correo mostrando las cabeceras completas y el botón **Responder**.
-* **Qué debe verse:** La interfaz de Thunderbird con la cuenta sincronizada por IMAP sobre TLS y el mensaje de prueba desplegado.
+* **Qué debe verse:** La interfaz de Thunderbird en Debian XFCE con la cuenta sincronizada por IMAP sobre TLS y el mensaje de prueba desplegado.
 * **Espacio para la captura en tu documento:**
   > `[INSERTAR AQUÍ CAPTURA 6: Visualización del correo en la bandeja de entrada de Thunderbird]`  
   > *Figura 3.6: Recuperación del mensaje mediante el protocolo IMAP bajo TLS en cliente gráfico.*
@@ -178,4 +186,3 @@ sequenceDiagram
 
 * **Repositorio Público de GitHub:** `https://github.com/[Tu_Usuario]/[Tu_Repositorio]/tree/main/Unidad_4/Tarea_4.3`
 * **Video Demostrativo en YouTube:** `https://youtu.be/[ID_DE_TU_VIDEO]`
-
