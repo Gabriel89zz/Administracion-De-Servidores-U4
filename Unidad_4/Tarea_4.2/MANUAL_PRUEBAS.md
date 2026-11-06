@@ -79,14 +79,13 @@ sudo id -u ftpuser &>/dev/null || sudo adduser --gecos "" --disabled-password ft
 echo "ftpuser:Alumno123" | sudo chpasswd
 sudo usermod -s /bin/bash ftpuser
 
-# 4. Estructurar la jaula chroot (permisos seguros de vsftpd)
-sudo mkdir -p /home/ftpuser/ftp/archivos
-sudo chown nobody:nogroup /home/ftpuser/ftp
-sudo chmod a-w /home/ftpuser/ftp
-sudo chown ftpuser:ftpuser /home/ftpuser/ftp/archivos
+# 4. Estructurar la carpeta de archivos con permisos correctos
+sudo mkdir -p /home/ftpuser/archivos
+sudo chown -R ftpuser:ftpuser /home/ftpuser/archivos
+sudo chmod 755 /home/ftpuser/archivos
 
 # 5. Crear un archivo de bienvenida dentro de la carpeta escribible
-echo "Bienvenido al directorio seguro del servidor FTP" | sudo tee /home/ftpuser/ftp/archivos/leeme.txt
+echo "Bienvenido al directorio seguro del servidor FTP" | sudo tee /home/ftpuser/archivos/leeme.txt
 
 # 6. Reiniciar vsftpd y verificar estado activo
 sudo systemctl restart vsftpd
