@@ -71,9 +71,10 @@ sudo systemctl restart apache2
 # Respaldar y copiar configuración de vsftpd
 sudo cp vsftpd.conf /etc/vsftpd.conf
 
-# Crear usuario para FTP
-sudo adduser --gecos "" ftpuser
-# (Asigna una contraseña, por ejemplo: Alumno123!)
+# Crear usuario ftpuser con contraseña Alumno123! de forma directa y no interactiva
+sudo adduser --gecos "" --disabled-password ftpuser
+echo "ftpuser:Alumno123!" | sudo chpasswd
+sudo usermod -s /bin/bash ftpuser
 
 # Estructurar la jaula chroot (permisos seguros de vsftpd)
 sudo mkdir -p /home/ftpuser/ftp/archivos
@@ -84,7 +85,7 @@ sudo chown ftpuser:ftpuser /home/ftpuser/ftp/archivos
 # Crear un archivo de bienvenida dentro de la carpeta escribible
 echo "Bienvenido al directorio seguro del servidor FTP" | sudo tee /home/ftpuser/ftp/archivos/leeme.txt
 
-# Reiniciar vsftpd
+# Reiniciar vsftpd y verificar estado
 sudo systemctl restart vsftpd
 sudo systemctl status vsftpd --no-pager
 ```
