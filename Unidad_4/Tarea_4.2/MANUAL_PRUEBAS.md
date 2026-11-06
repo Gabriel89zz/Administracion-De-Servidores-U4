@@ -28,13 +28,18 @@ EXIT;
 ```
 
 ### Paso 1.3: Generación de Certificados SSL/TLS con SAN
-Ejecuta el script incluido:
+Ubícate en la carpeta de la tarea dentro del repositorio:
 ```bash
+cd ~/Administracion-De-Servidores-U4/Unidad_4/Tarea_4.2/
+
+# Dar permisos de ejecución y generar el certificado
+chmod +x generar_certificados.sh
 sudo bash generar_certificados.sh
 ```
 > Verifica que existan los archivos `/etc/ssl/certs/empresa.local.crt` y `/etc/ssl/private/empresa.local.key`.
 
 ### Paso 1.4: Despliegue del Sitio Web y Virtual Hosts
+Desde la misma carpeta `~/Administracion-De-Servidores-U4/Unidad_4/Tarea_4.2/`:
 ```bash
 # Crear directorio raíz del sitio corporativo
 sudo mkdir -p /var/www/empresa.local/public_html

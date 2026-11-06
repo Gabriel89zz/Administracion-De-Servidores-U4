@@ -16,8 +16,10 @@ sudo apt install -y isc-dhcp-server bind9 bind9utils dnsutils
 ```
 
 ### Paso 1.2: Despliegue de Archivos de DNS BIND9
-Desde la carpeta del repositorio `Administracion-De-Servidores-U4/Unidad_4/Tarea_4.1/`:
+Asegúrate de estar ubicado en la carpeta de la tarea dentro del repositorio clonado:
 ```bash
+cd ~/Administracion-De-Servidores-U4/Unidad_4/Tarea_4.1/
+
 # Crear directorio para almacenar los archivos de zonas
 sudo mkdir -p /etc/bind/zones
 
@@ -68,9 +70,13 @@ sudo systemctl restart isc-dhcp-server && sudo systemctl status isc-dhcp-server 
 ## 3. Pruebas de Asignación de IP Dinámica (DHCP)
 
 ### Paso 3.1: En el Servidor Debian (Monitoreo en Vivo de Logs)
-Abre una terminal en Debian Server y ejecuta:
+Abre una terminal en Debian Server y ejecuta cualquiera de las dos opciones para ver la concesión en tiempo real:
 ```bash
-sudo tail -f /var/log/syslog | grep dhcpd
+# Opción recomendada en Debian 12 (Nativa sin dependencias):
+sudo journalctl -u isc-dhcp-server -f
+
+# Opción clásica (si tienes instalado el paquete rsyslog):
+# sudo tail -f /var/log/syslog | grep dhcpd
 ```
 
 ### Paso 3.2: En la Estación Cliente (Solicitud de IP)

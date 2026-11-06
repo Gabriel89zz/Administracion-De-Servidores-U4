@@ -23,7 +23,10 @@ echo "empresa.local" | sudo tee /etc/mailname
 ```
 
 ### Paso 1.3: Copiar Configuraciones de Postfix y Dovecot
+Ubícate en la carpeta de la tarea dentro del repositorio:
 ```bash
+cd ~/Administracion-De-Servidores-U4/Unidad_4/Tarea_4.3/
+
 # Copiar configuración de Postfix
 sudo cp main.cf /etc/postfix/main.cf
 sudo cp master.cf /etc/postfix/master.cf
@@ -86,11 +89,14 @@ Desde el cliente (Debian XFCE o Windows):
 ## 3. Pruebas de Envío y Trazabilidad en Tiempo Real (Log)
 
 ### Paso 3.1: Monitoreo en Vivo de Logs en Debian Server
-Abre una terminal en Debian Server y déjala corriendo con:
+Abre una terminal en Debian Server y ejecuta el comando de monitoreo:
 ```bash
-sudo tail -f /var/log/mail.log
+# Opción nativa en Debian 12 (Recomendada):
+sudo journalctl -u postfix -u dovecot -f
+
+# Opción tradicional (si tienes rsyslog activo):
+# sudo tail -f /var/log/mail.log
 ```
-*(En Debian 12 sin rsyslog instalado, usa: `sudo journalctl -u postfix -u dovecot -f`)*
 
 ### Paso 3.2: Envío de Correo de Prueba
 
