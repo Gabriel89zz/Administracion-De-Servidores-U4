@@ -47,9 +47,9 @@
 
 * **En pantalla:** Escritorio de VMware mostrando las dos máquinas virtuales: a la izquierda la consola de `Debian Server` y a la derecha el escritorio de `Debian XFCE`. Cámara web visible en la esquina inferior derecha.
 * **Lo que dices verbalmente:**
-  > *"Estimado profesor y compañeros, bienvenidos a la presentación técnica de la Tarea 4.2 de la materia Administración de Servidores, correspondiente a la Unidad 4. Mi nombre es [Tu Nombre Completo].*
+  > *"Qué tal a todos, mi nombre es [Tu Nombre], estudiante de la carrera de Ingeniería en Informática, y este video corresponde a la materia de Administración de Servidores.*
   > 
-  > *En esta práctica abordaremos la implementación y securización de dos de los servicios de aplicación más críticos en entornos corporativos: la publicación web segura mediante un **Stack LAMP bajo protocolo HTTPS con certificados TLS** y la transferencia controlada de archivos mediante **VSFTPD protegido con confinamiento Chroot Jail**.*
+  > *Hoy vamos a desarrollar la Tarea 4.2 de la Unidad 4, enfocada en la implementación y securización de dos servicios clave de aplicación en entornos corporativos: la publicación web segura mediante un **Stack LAMP bajo protocolo HTTPS con certificados TLS** y la transferencia controlada de archivos mediante **VSFTPD protegido con confinamiento Chroot Jail**.*
   > 
   > *El problema de seguridad fundamental que resolvemos hoy radica en la vulnerabilidad de las comunicaciones en texto plano. Cuando un usuario interactúa mediante el protocolo HTTP estándar o transmite archivos mediante FTP tradicional, cualquier paquete que viaje por el canal de red puede ser interceptado, analizado y reconstruido por un atacante mediante técnicas de captura de tráfico como 'Man-In-The-Middle' (MITM).*
   > 
@@ -106,11 +106,17 @@
 
 ---
 
-### [05:45 - 07:30] Paso 2: Generación del Certificado SSL/TLS con SAN (OpenSSL)
+### [05:45 - 07:30] Paso 2: Generación del Certificado SSL/TLS con SAN (OpenSSL) y Explicación de Rutas Criptográficas
 
 * **En pantalla:** Terminal de Debian Server mostrando el script `generar_certificados.sh` con `cat -n`.
 * **Lo que dices verbalmente:**
-  > *"Para automatizar la emisión del certificado corporativo bajo estándares modernos, creamos el script `generar_certificados.sh`. Inspeccionemos su lógica línea por línea con `cat -n`:*
+  > *"Antes de generar el certificado, analicemos la lógica de las **rutas criptográficas del sistema de archivos en Linux**:*
+  > 
+  > *- **El directorio raíz `/etc/ssl/`:** En el estándar FHS, `/etc/ssl/` es la ubicación designada para almacenar toda la infraestructura de claves públicas (PKI) y certificados del sistema operativo.*
+  > *- **La subcarpeta `/etc/ssl/certs/`:** Está destinada a los certificados públicos (con extensión `.crt` o `.pem`). Como estos certificados se entregan públicamente a cualquier cliente o navegador web que se conecte, poseen permisos estándar de lectura pública `644`.*
+  > *- **La subcarpeta `/etc/ssl/private/`:** Está destinada exclusivamente a las **claves privadas asimétricas** (extensión `.key`). En Linux, esta carpeta posee permisos altamente restrictivos (`700` o `710`) y los archivos en su interior se protegen con `chmod 600`, de modo que única y exclusivamente el superusuario `root` tenga acceso a leer el secreto criptográfico. Si una clave privada pudiera ser leída por usuarios no privilegiados, toda la seguridad del cifrado TLS quedaría comprometida.*
+  > 
+  > *Para automatizar la emisión del certificado corporativo bajo estándares modernos, creamos el script `generar_certificados.sh`. Inspeccionemos su lógica línea por línea con `cat -n`:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
   cat -n ~/Administracion-De-Servidores-U4/Unidad_4/Tarea_4.2/generar_certificados.sh
@@ -140,11 +146,17 @@
 
 ---
 
-### [07:30 - 09:30] Paso 3: Análisis Detallado Línea por Línea de VirtualHosts de Apache
+### [07:30 - 09:30] Paso 3: Análisis Detallado Línea por Línea de VirtualHosts de Apache y Estructura Modular
 
 * **En pantalla:** Terminal de Debian Server mostrando los archivos de configuración de Apache con `cat -n`.
 * **Lo que dices verbalmente:**
-  > *"Inspeccionemos la configuración de los Virtual Hosts en Apache. Para el puerto 80 visualizamos `empresa.local.conf`:*
+  > *"Ahora configuraremos Apache. Aquí es indispensable comprender la **arquitectura modular de directorios que utiliza Debian para Apache en `/etc/apache2/`**:*
+  > 
+  > *- **`sites-available/` frente a `sites-enabled/`:** En Debian, los Virtual Hosts no se activan directamente. En `sites-available/` almacenamos las plantillas o archivos de configuración creados por nosotros. Cuando ejecutamos el comando `sudo a2ensite <nombre>`, Apache no copia el archivo, sino que crea un **enlace simbólico** (*symlink*) apuntando desde `sites-available/` hacia `sites-enabled/`. De esta forma, si queremos dar de baja un sitio temporalmente, basta con ejecutar `sudo a2dissite <nombre>` para eliminar el enlace simbólico sin borrar el archivo de configuración original.*
+  > *- Lo mismo aplica para módulos con `mods-available/` y `mods-enabled/`, gestionados mediante el comando auxiliar `sudo a2enmod`.*
+  > *- **La ruta del DocumentRoot (`/var/www/html/empresa.local`):** En el estándar FHS, `/var/www/` es el directorio reservado para el contenido servido por el servidor web (*World Wide Web*). Creamos la subcarpeta `empresa.local` para que cada sitio virtual tenga su propio espacio aislado de archivos HTML y PHP.*
+  > 
+  > *Inspeccionemos la configuración del Virtual Host en el puerto 80 visualizando `empresa.local.conf` con `cat -n`:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
   cat -n /etc/apache2/sites-available/empresa.local.conf

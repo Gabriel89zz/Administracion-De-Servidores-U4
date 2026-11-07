@@ -46,17 +46,17 @@
 
 * **En pantalla:** Escritorio mostrando las dos máquinas virtuales en paralelo sobre VMware Workstation: a la izquierda la consola de `Debian Server` y a la derecha el escritorio de `Debian XFCE`. Cámara web visible en la esquina inferior derecha.
 * **Lo que dices verbalmente:**
-  > *"Estimado profesor y compañeros, les doy la bienvenida a la presentación técnica de la Tarea 4.1 de la materia Administración de Servidores, correspondiente a la Unidad 4: Servidores DNS, Web, FTP, DHCP y Correo Electrónico. Mi nombre es [Tu Nombre Completo].*
+  > *"Qué tal a todos, mi nombre es [Tu Nombre], estudiante de la carrera de Ingeniería en Informática, y este video corresponde a la materia de Administración de Servidores.*
   > 
-  > *El propósito central de esta práctica es implementar, configurar y auditar los dos servicios esenciales de infraestructura que gobiernan las comunicaciones en una red corporativa: el protocolo de configuración dinámica de host a través de **ISC-DHCP-Server**, y la resolución jerárquica de nombres mediante el servidor autoritativo **BIND9** sobre **Debian GNU/Linux 12**.*
+  > *Hoy vamos a desarrollar la Tarea 4.1 de la Unidad 4, enfocada en la implementación, configuración y auditoría de dos servicios fundamentales de infraestructura de red: el protocolo de configuración dinámica de host a través de **ISC-DHCP-Server**, y la resolución jerárquica de nombres mediante el servidor autoritativo **BIND9** sobre **Debian GNU/Linux 12**.*
   > 
-  > *Antes de analizar la configuración, es fundamental responder a una pregunta técnica clave: **¿Por qué estamos utilizando dos máquinas virtuales independientes en este laboratorio?***
-  > *La razón es que un servicio de red nunca debe evaluarse de forma aislada sobre la misma máquina que lo aloja. Utilizar dos máquinas virtuales recrea con fidelidad la arquitectura cliente/servidor del mundo real:*
-  > *1. **Aislamiento de roles:** El servidor actúa como el proveedor central de recursos y directivas, mientras que el cliente opera como el nodo consumidor.*
-  > *2. **Pruebas de difusión real en capa de enlace:** El protocolo DHCP opera mediante paquetes de broadcast (`255.255.255.255`). Para demostrar que el servidor responde correctamente a una solicitud de red auténtica, el paquete debe atravesar un medio de transmisión virtualizado entre dos adaptadores de red distintos.*
-  > *3. **Independencia del Sistema Operativo Cliente:** Aunque en este laboratorio estamos utilizando una máquina cliente con **Debian XFCE**, es imperativo aclarar que el cliente podría ser indistintamente una estación de trabajo con **Windows 10, Windows 11, Ubuntu o cualquier otra distribución Linux**. Los protocolos DHCP y DNS son estándares abiertos definidos por RFCs del IETF (específicamente RFC 2131 para DHCP y RFC 1034 y 1035 para DNS). El servidor responde de manera universal e idéntica a cualquier sistema operativo que respete el estándar.*
+  > *Antes de entrar a los archivos de configuración, quiero explicar un detalle muy importante: **¿Por qué estamos utilizando dos máquinas virtuales independientes en este laboratorio?***
+  > *La razón es que un servicio de infraestructura de red jamás debe evaluarse de forma aislada sobre la misma máquina que lo aloja. Utilizar dos máquinas virtuales separadas nos permite recrear fielmente un entorno corporativo real:*
+  > *1. **Desacoplamiento de roles:** Nuestro servidor `Debian Server` se encarga de administrar y proveer las políticas y recursos, mientras que la máquina cliente actúa como la estación de trabajo que consume dichos servicios.*
+  > *2. **Pruebas de difusión real en la red:** El protocolo DHCP opera mediante paquetes de broadcast (`255.255.255.255`). Para demostrar que el servidor responde de verdad a una petición de red, ese paquete debe viajar físicamente a través del cable virtual entre dos tarjetas de red distintas.*
+  > *3. **Independencia del Sistema Operativo Cliente:** Aunque en este video estamos utilizando una máquina cliente con **Debian XFCE**, es fundamental aclarar que el cliente podría ser indistintamente una computadora con **Windows 10, Windows 11, Ubuntu o cualquier otra distribución Linux**. Los protocolos DHCP y DNS son estándares abiertos universales (definidos por las RFC 2131 para DHCP y RFC 1034 y 1035 para DNS). Al servidor no le importa qué sistema operativo tenga el cliente; siempre que el cliente hable el estándar del protocolo, el servidor le entregará su configuración exactamente igual.*
   > 
-  > *Ambas máquinas están interconectadas a través de un **LAN Segment** en VMware denominado `Lab-Red`, operando en la subred privada `192.168.50.0/24`. Este aislamiento garantiza que nuestro servidor DHCP no colisione con el enrutador físico doméstico ni emita concesiones indebidas fuera del laboratorio."*
+  > *Ambas máquinas están interconectadas mediante un **LAN Segment** en VMware llamado `Lab-Red`, en la subred privada `192.168.50.0/24`. Esto nos asegura que el laboratorio esté totalmente aislado de nuestra red física doméstica para no causar conflictos con el módem de casa."*
 
 ---
 
@@ -129,13 +129,28 @@
 
 ---
 
-### [07:00 - 09:30] Paso 3: Análisis Detallado Línea por Línea de `dhcpd.conf`
+### [07:00 - 09:30] Paso 3: Análisis Detallado Línea por Línea de `dhcpd.conf` y Explicación de Rutas
 
 * **En pantalla:** Terminal de Debian Server mostrando el archivo `/etc/dhcp/dhcpd.conf` con numeración de líneas.
 * **Lo que dices verbalmente:**
-  > *"Antes de configurar las directivas del pool, en el archivo `/etc/default/isc-dhcp-server` definimos la variable `INTERFACESv4="ens37"` para indicarle al demonio que enlace sus sockets exclusivamente a la interfaz del laboratorio.*
+  > *"Antes de abrir el archivo, quiero hacer un paréntesis formativo muy importante sobre las **rutas del sistema de archivos en Linux**, ya que entender la estructura de directorios FHS (Filesystem Hierarchy Standard) es indispensable para cualquier administrador de sistemas:*
   > 
-  > *Para inspeccionar de manera limpia y profesional el archivo principal de configuración sin riesgo de alterar accidentalmente sus directivas, utilizaremos el comando `cat -n`. El parámetro `-n` numera cada una de las líneas, lo que nos permite auditar su estructura con absoluta precisión:*
+  > *1. **¿Qué significa el directorio `/etc/`?**  
+  > En Linux, `/etc/` proviene históricamente de 'Editable Text Configuration'. Es el directorio raíz reservado de forma exclusiva para almacenar todos los archivos de configuración global del sistema y de los servicios instalados. A diferencia de Windows, donde muchas configuraciones se ocultan en un Registro binario, en Linux la filosofía es que **todo es un archivo de texto plano editable por el administrador**.*
+  > 
+  > *2. **¿Por qué existe `/etc/default/`?**  
+  > En distribuciones basadas en Debian, `/etc/default/` contiene archivos con variables de entorno que los scripts de inicialización de `systemd` leen **antes** de arrancar un demonio. Por eso, en `/etc/default/isc-dhcp-server` especificamos la directiva `INTERFACESv4="ens37"`, para que el demonio sepa qué tarjeta física enlazar al momento de iniciar.*
+  > 
+  > *3. **¿Por qué la ruta es `/etc/dhcp/dhcpd.conf`?**  
+  > - `/etc/dhcp/`: Es el subdirectorio o espacio de nombres dedicado al paquete del servidor DHCP.  
+  > - `dhcpd.conf`: Noten la letra **`d`** al final de `dhcpd`. En el estándar Unix/Linux, la 'd' significa **daemon** (demonio, es decir, un servicio que se ejecuta de forma continua en segundo plano, como `sshd`, `named`, `httpd` o `dhcpd`). La extensión `.conf` indica que es el archivo de configuración maestro que ese demonio lee al encender.*
+  > 
+  > *4. **Diferencia entre `/etc/` y `/var/`:**  
+  > ¿Por qué el archivo de concesiones dinámicas activas no se guarda en `/etc/` sino en `/var/lib/dhcp/dhcpd.leases`? Porque `/etc/` almacena configuraciones **estáticas** definidas por nosotros los administradores, mientras que el directorio `/var/` (Variable data) está reservado para información dinámica que cambia continuamente en tiempo de ejecución conforme los clientes se conectan y desconectan de la red.*
+  > 
+  > *Para inspeccionar de manera limpia, ordenada y profesional este archivo en pantalla sin riesgo de alterar accidentalmente sus parámetros, utilizaremos el comando `cat -n`. El parámetro `-n` enumera cada línea, permitiéndonos referenciar con precisión técnica cada directiva. Si ustedes necesitan crearlo o editarlo desde cero, el comando correspondiente con editor interactivo sería `sudo nano /etc/dhcp/dhcpd.conf`.*
+  > 
+  > *Visualicemos el archivo en pantalla:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
   cat -n /etc/dhcp/dhcpd.conf
@@ -183,14 +198,23 @@
 
 * **En pantalla:** Consola de Debian Server mostrando los archivos de BIND9 con `cat -n`.
 * **Lo que dices verbalmente:**
-  > *"Continuamos con la auditoría de BIND9. Inspeccionamos primero `/etc/bind/named.conf.options` mediante `cat -n`:*
+  > *"Continuamos con la auditoría de BIND9. Antes de revisar las opciones, analicemos también la lógica de las **rutas de BIND9** en Linux:*
+  > 
+  > *- **El directorio `/etc/bind/`:** Es el subdirectorio de `/etc` dedicado a Berkeley Internet Name Domain versión 9.*
+  > *- **¿Por qué los archivos se llaman `named.conf...`?** El demonio de BIND en Linux se llama **`named`** ('Name Daemon', o Demonio de Nombres). Por esa razón, sus archivos maestros en `/etc/bind/` se denominan `named.conf.options`, `named.conf.local` y `named.conf.default-zones`.*
+  > *- **La subcarpeta `/etc/bind/zones/`:** La creamos manualmente con `sudo mkdir -p /etc/bind/zones`. Hacemos esto por buena práctica de ingeniería para aislar de forma limpia y ordenada los archivos de nuestras zonas corporativas de los archivos por defecto que trae el sistema.*
+  > *- **El prefijo `db.` en `db.empresa.local`:** En la convención histórica de BIND, 'db' significa **database** (base de datos de registros de nombres).*
+  > 
+  > *Inspeccionamos primero `/etc/bind/named.conf.options` mediante `cat -n`:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
   cat -n /etc/bind/named.conf.options
   ```
 * **Explicación técnica línea por línea:**
+  > *- **Línea 5 (`directory "/var/cache/bind";`):** Define la ruta de trabajo en `/var/` donde BIND9 almacena cachés volátiles y archivos de soporte.*
   > *- **Líneas 8 y 9 (`allow-query` y `allow-recursion`):** Restringen las consultas y la recursión únicamente al localhost y a la subred corporativa `192.168.50.0/24`, evitando ataques de amplificación DNS desde redes externas.*
   > *- **Líneas 12 a 15 (`forwarders { 8.8.8.8; 1.1.1.1; };`):** Define los servidores DNS públicos a los cuales BIND9 consultará recursivamente cuando se le soliciten dominios que no pertenezcan a `empresa.local`.*
+  > *- **Línea 18 (`forward first;`):** Le indica que primero intente resolver consultando a los forwarders.*
   > *- **Línea 24 (`listen-on port 53 { 127.0.0.1; 192.168.50.10; };`):** Enlaza el demonio a los sockets locales en el puerto estándar UDP y TCP 53.*
   > 
   > *En `/etc/bind/named.conf.local` declaramos formalmente las zonas:*
@@ -206,6 +230,7 @@
   > ```
   > *- `type master`: Declara a este nodo como la fuente primaria autoritativa de datos.*
   > *- `file`: Establece la ruta absoluta al archivo de registros.*
+  > *- Noten la zona inversa `50.168.192.in-addr.arpa`: el dominio de nivel superior `.arpa` (Address and Routing Parameter Area) es una zona especial creada en los inicios de internet reservada exclusivamente para parámetros de direccionamiento inverso.*
   > 
   > *Inspeccionemos ahora la zona directa ejecutando `cat -n /etc/bind/zones/db.empresa.local`:*
 * **Comando a ejecutar en Debian Server:**

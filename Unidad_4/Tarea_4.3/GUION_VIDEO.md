@@ -47,9 +47,9 @@
 
 * **En pantalla:** Escritorio de VMware mostrando las dos máquinas virtuales en paralelo: a la izquierda la consola de `Debian Server` y a la derecha el escritorio de `Debian XFCE`. Cámara web visible en la esquina inferior derecha.
 * **Lo que dices verbalmente:**
-  > *"Estimado profesor y compañeros, bienvenidos a la presentación técnica de la Tarea 4.3 de la materia Administración de Servidores, correspondiente a la Unidad 4. Mi nombre es [Tu Nombre Completo].*
+  > *"Qué tal a todos, mi nombre es [Tu Nombre], estudiante de la carrera de Ingeniería en Informática, y este video corresponde a la materia de Administración de Servidores.*
   > 
-  > *En esta práctica abordaremos la implementación, configuración y auditoría de uno de los sistemas distribuidos más complejos en la administración de redes: un **Servidor de Correo Electrónico Corporativo Completo y Seguro** bajo el dominio `empresa.local`, empleando **Postfix** como Agente de Transferencia de Correo (MTA) y **Dovecot** como Agente de Entrega de Correo (MDA) sobre **Debian GNU/Linux 12**.*
+  > *Hoy vamos a desarrollar la Tarea 4.3 de la Unidad 4, enfocada en la implementación, configuración y auditoría de un **Servidor de Correo Electrónico Corporativo Completo y Seguro** bajo el dominio `empresa.local`, empleando **Postfix** como Agente de Transferencia de Correo (MTA) y **Dovecot** como Agente de Entrega de Correo (MDA) sobre **Debian GNU/Linux 12**.*
   > 
   > *A nivel arquitectónico, el correo electrónico exige desacoplar tres componentes indispensables:*
   > *1. El **MTA** (Mail Transfer Agent): Encargado del enrutamiento, transmisión y aceptación de mensajes a través de la red mediante el protocolo **SMTP**. Para este rol implementamos **Postfix**.*
@@ -124,11 +124,19 @@
 
 ---
 
-### [06:30 - 09:15] Paso 2: Desglose Exhaustivo Línea por Línea de Postfix (`main.cf`)
+### [06:30 - 09:15] Paso 2: Desglose Exhaustivo Línea por Línea de Postfix (`main.cf`) y Explicación de Rutas
 
 * **En pantalla:** Terminal de Debian Server mostrando `/etc/postfix/main.cf` con `cat -n`.
 * **Lo que dices verbalmente:**
-  > *"Copiamos nuestros archivos optimizados hacia `/etc/postfix/` e inspeccionamos `main.cf` con el comando `cat -n` para auditar su estructura con numeración de líneas:*
+  > *"Antes de examinar los parámetros, analicemos la lógica de las **rutas y la arquitectura de procesos de Postfix en Linux**:*
+  > 
+  > *- **El directorio `/etc/postfix/`:** Es el subdirectorio de `/etc` asignado a la configuración del MTA.  
+  > En él encontramos dos archivos clave: `main.cf` y `master.cf` (la extensión `.cf` significa *Configuration File*).*
+  > *- **Diferencia entre `main.cf` y `master.cf`:**  
+  > En la filosofía Unix/Linux, Postfix no es un único programa gigante monolítico; es una familia coordinada de pequeños demonios especializados (`smtpd` para recibir conexiones, `cleanup` para sanear cabeceras, `qmgr` para administrar la cola de salida y `local` para depositar en disco).  
+  > `master.cf` es el archivo supervisor que define qué demonios se ejecutan y en qué puertos escuchan (por ejemplo, el puerto 25 o el puerto 587 Submission). Por su parte, `main.cf` define las variables globales de comportamiento corporativo.*
+  > 
+  > *Copiamos nuestros archivos hacia `/etc/postfix/` e inspeccionamos `main.cf` con `cat -n` para auditar su estructura con numeración de líneas:*
 * **Comandos a ejecutar en Debian Server:**
   ```bash
   cd ~/Administracion-De-Servidores-U4/Unidad_4/Tarea_4.3/
@@ -162,11 +170,17 @@
 
 ---
 
-### [09:15 - 11:15] Paso 3: Desglose Exhaustivo Línea por Línea de Dovecot 2.4 (`dovecot.conf`)
+### [09:15 - 11:15] Paso 3: Desglose Exhaustivo Línea por Línea de Dovecot 2.4 (`dovecot.conf`) y Sockets UNIX
 
 * **En pantalla:** Terminal de Debian Server mostrando `/etc/dovecot/dovecot.conf` con `cat -n`.
 * **Lo que dices verbalmente:**
-  > *"Procedemos a auditar la configuración de Dovecot. En Debian 12 opera la versión **Dovecot 2.4**, la cual reemplazó la estructura modular antigua por un esquema unificado y estricto.  
+  > *"Procedemos a auditar la configuración de Dovecot. Aquí encontramos otro concepto de ingeniería fascinante en Linux: el directorio `/var/spool/` y los **sockets de dominio UNIX**.*
+  > 
+  > *- **El directorio `/var/spool/`:** En el estándar FHS, `/var/spool/` almacena colas de espera para procesos asíncronos (como colas de impresión o colas de correo en tránsito).*
+  > *- **¿Qué es el socket `/var/spool/postfix/private/auth`?**  
+  > Postfix opera enjaulado por seguridad en `/var/spool/postfix/`. Para que Postfix pueda autenticar usuarios sin tener que abrir un puerto de red TCP expuesto, Dovecot crea un **socket UNIX** en esa ruta. Un socket UNIX es un canal bidireccional de comunicación entre procesos (IPC) gestionado directamente en la memoria del kernel Linux, operando a la velocidad de la memoria RAM y con máxima seguridad.*
+  > 
+  > *En Debian 12 opera la versión **Dovecot 2.4**, la cual reemplazó la estructura modular antigua por un esquema unificado y estricto.  
   > Inspeccionamos `/etc/dovecot/dovecot.conf` con `cat -n`:*
 * **Comandos a ejecutar en Debian Server:**
   ```bash
