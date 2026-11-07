@@ -123,8 +123,8 @@ Configura la cuenta de `usuario1` o `usuario2`, redacta el mensaje y haz clic en
 
 Comprueba en Debian Server el archivo físico del correo en el directorio del usuario:
 ```bash
-ls -la /home/usuario2/Maildir/new/
-cat /home/usuario2/Maildir/new/*
+sudo ls -la /home/usuario2/Maildir/new/
+sudo cat /home/usuario2/Maildir/new/*
 ```
 Observarás todas las cabeceras SMTP (`From:`, `To:`, `Subject:`, `Date:`) y el cuerpo del mensaje.
 

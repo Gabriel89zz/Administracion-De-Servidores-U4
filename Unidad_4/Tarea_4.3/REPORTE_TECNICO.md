@@ -152,8 +152,8 @@ sequenceDiagram
 ### 📸 Evidencia 5: Recepción del Correo en el Buzón Físico (`Maildir/new`)
 * **Comando en Debian Server:**
   ```bash
-  ls -lh /home/usuario2/Maildir/new/
-  cat /home/usuario2/Maildir/new/*
+  sudo ls -lh /home/usuario2/Maildir/new/
+  sudo cat /home/usuario2/Maildir/new/*
   ```
 * **Qué debe verse:** El archivo físico generado dentro de `new/`, con el asunto, remitente, fecha y cuerpo del mensaje legible.
 * **Espacio para la captura en tu documento:**
