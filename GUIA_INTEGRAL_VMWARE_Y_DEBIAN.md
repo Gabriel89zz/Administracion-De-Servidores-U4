@@ -13,18 +13,18 @@ Utilizaremos la función **LAN Segment** (o *Host-Only*) de VMware. Los LAN Segm
 
 ```mermaid
 flowchart TD
-    subgraph Host["Equipo Físico (Windows Host)"]
+    subgraph Host["Equipo Fisico - Windows Host"]
         subgraph VMware["VMware Workstation"]
-            subgraph LANSegment["LAN Segment: 'Lab-Red' (192.168.50.0/24)"]
-                ServerNIC2["Debian Server (Interfaz ens37)\nIP Estática: 192.168.50.10/24"]
-                ClientNIC1["Debian XFCE Cliente (Interfaz ens33)\nIP Dinámica por DHCP\nNavegador Firefox, FileZilla, Thunderbird"]
+            subgraph LANSegment["LAN Segment: Lab-Red 192.168.50.0/24"]
+                ServerNIC2["Debian Server - Interfaz ens37<br/>IP Estatica: 192.168.50.10/24"]
+                ClientNIC1["Debian XFCE Cliente - Interfaz ens33<br/>IP Dinamica por DHCP<br/>Firefox, FileZilla, Thunderbird"]
             end
-            ServerNIC1["Debian Server (Interfaz ens33)\nAdaptador NAT (Salida a Internet)"]
+            ServerNIC1["Debian Server - Interfaz ens33<br/>Adaptador NAT - Salida a Internet"]
         end
-        PhysicalNIC["Tarjeta WiFi / Ethernet Física"]
+        PhysicalNIC["Tarjeta WiFi o Ethernet Fisica"]
     end
     ServerNIC1 -.-> PhysicalNIC -.-> Internet((Internet))
-    ServerNIC2 <===>|DHCP, DNS, Web, FTP, Correo| ClientNIC1
+    ServerNIC2 <-->|"DHCP, DNS, Web, FTP, Correo"| ClientNIC1
 ```
 
 ---

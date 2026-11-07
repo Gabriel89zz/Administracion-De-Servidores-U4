@@ -29,31 +29,31 @@ El siguiente diagrama detalla la ruta de punta a punta que sigue un correo desde
 sequenceDiagram
     autonumber
     actor Remitente as usuario1 (Debian XFCE)
-    participant Postfix as Postfix MTA (SMTP :25/:587)
-    participant DNS as BIND9 DNS (MX & SPF)
-    participant Dovecot as Dovecot MDA (Buzón / IMAP :993)
+    participant Postfix as Postfix MTA (SMTP 25/587)
+    participant DNS as BIND9 DNS (MX y SPF)
+    participant Dovecot as Dovecot MDA (Buzon IMAP 993)
     actor Destinatario as usuario2 (Debian XFCE)
 
-    Note over Remitente,Postfix: Fase 1: Envío SMTP y Verificación de Identidad
-    Remitente->>Postfix: Conexión SMTP / STARTTLS
-    Postfix->>Postfix: Validación SASL y políticas mynetworks
-    Remitente->>Postfix: MAIL FROM: <usuario1@empresa.local>
-    Remitente->>Postfix: RCPT TO: <usuario2@empresa.local>
+    Note over Remitente,Postfix: Fase 1: Envio SMTP y Verificacion de Identidad
+    Remitente->>Postfix: Conexion SMTP / STARTTLS
+    Postfix->>Postfix: Validacion SASL y politicas mynetworks
+    Remitente->>Postfix: MAIL FROM: usuario1@empresa.local
+    Remitente->>Postfix: RCPT TO: usuario2@empresa.local
     Postfix->>DNS: Consulta registro MX y SPF de empresa.local
     DNS-->>Postfix: MX 10 mail.empresa.local + SPF PASS
     Remitente->>Postfix: DATA (Cabeceras + Cuerpo del correo)
-    Postfix-->>Remitente: 250 2.0.0 Ok: queued as [TRANSACCION_ID]
+    Postfix-->>Remitente: 250 2.0.0 Ok: queued as TRANSACCION_ID
 
     Note over Postfix,Dovecot: Fase 2: Ruteo Local y Entrega en Disco
-    Postfix->>Postfix: Limpieza de cola y resolución local
-    Postfix->>Dovecot: Entrega a buzón local (/home/usuario2/Maildir/new/)
-    Note right of Dovecot: Registro en /var/log/mail.log:<br/>status=sent (delivered to maildir)
+    Postfix->>Postfix: Limpieza de cola y resolucion local
+    Postfix->>Dovecot: Entrega a buzon local (/home/usuario2/Maildir/new/)
+    Note right of Dovecot: status=sent (delivered to maildir)
 
-    Note over Destinatario,Dovecot: Fase 3: Consulta y Recuperación IMAP
-    Destinatario->>Dovecot: Conexión IMAP sobre TLS (Puerto 993)
-    Destinatario->>Dovecot: LOGIN usuario2 / [Contraseña]
-    Dovecot-->>Destinatario: Autenticación exitosa (200 OK)
-    Destinatario->>Dovecot: SELECT INBOX & FETCH
+    Note over Destinatario,Dovecot: Fase 3: Consulta y Recuperacion IMAP
+    Destinatario->>Dovecot: Conexion IMAP sobre TLS (Puerto 993)
+    Destinatario->>Dovecot: LOGIN usuario2 Alumno123
+    Dovecot-->>Destinatario: Autenticacion exitosa (200 OK)
+    Destinatario->>Dovecot: SELECT INBOX y FETCH
     Dovecot-->>Destinatario: Entrega mensaje con cabeceras y contenido
 ```
 
@@ -81,96 +81,87 @@ sequenceDiagram
 ---
 
 ### 📸 Evidencia 1: Resolución de Registros DNS de Correo (MX, A y SPF)
-* **Comandos en el Cliente:**
-  - **En Linux (Debian XFCE):**
-    ```bash
-    dig @192.168.50.10 empresa.local MX +short
-    nslookup mail.empresa.local 192.168.50.10
-    dig @192.168.50.10 empresa.local TXT +short
-    ```
-  - *(En Windows):*
-    ```cmd
-    nslookup -type=mx empresa.local 192.168.50.10
-    nslookup mail.empresa.local 192.168.50.10
-    nslookup -type=txt empresa.local 192.168.50.10
-    ```
+* **Comandos en el Cliente (Debian XFCE):**
+  ```bash
+  dig @192.168.50.10 empresa.local MX +short
+  nslookup mail.empresa.local 192.168.50.10
+  dig @192.168.50.10 empresa.local TXT +short
+  ```
 * **Qué debe verse:**
-  - El registro MX devolviendo `mail.empresa.local` con preferencia 10.
+  - El registro MX devolviendo `10 mail.empresa.local.`
   - El registro A de `mail.empresa.local` apuntando a `192.168.50.10`.
-  - El registro TXT mostrando la directiva SPF autorizando a la IP del servidor.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 1: Registros DNS MX, A y SPF para el servicio de correo]`  
-  > *Figura 3.1: Verificación de los registros DNS indispensables para la interoperabilidad de correo.*
+  - El registro TXT mostrando la directiva SPF autorizando a la IP del servidor: `"v=spf1 mx ip4:192.168.50.10 ~all"`.
+
+![Figura 3.1: Verificación de los registros DNS indispensables para la interoperabilidad de correo](../Evidencias%20Capturas/Tarea_4.3_Correo_Postfix_Dovecot/Evidencia_1_Registros_DNS_MX_A_SPF.png)  
+*Figura 3.1: Verificación de los registros DNS indispensables para la interoperabilidad de correo.*
 
 ---
 
 ### 📸 Evidencia 2: Estado Activo y Carga de Servicios Postfix y Dovecot
 * **Comandos en Debian Server:**
   ```bash
-  sudo systemctl status postfix --no-pager
-  sudo systemctl status dovecot --no-pager
+  sudo systemctl status postfix dovecot --no-pager
   ```
 * **Qué debe verse:** Ambos servicios en color verde mostrando el estado `active (running)`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 2: Estado de ejecución de los demonios Postfix y Dovecot]`  
-  > *Figura 3.2: Confirmación de operatividad de los agentes MTA y MDA en Debian Server.*
+
+![Figura 3.2: Confirmación de operatividad de los agentes MTA y MDA en Debian Server](../Evidencias%20Capturas/Tarea_4.3_Correo_Postfix_Dovecot/Evidencia_2_Status_Postfix_Dovecot.png)  
+*Figura 3.2: Confirmación de operatividad de los agentes MTA y MDA en Debian Server.*
 
 ---
 
-### 📸 Evidencia 3: Transacción SMTP de Envío de Correo (Swaks / Thunderbird)
-* **Acción en el Cliente:**
-  - Si usas `swaks`:
-    ```bash
-    swaks --to usuario2@empresa.local --from usuario1@empresa.local --server 192.168.50.10 --header "Subject: Prueba de Entrega - Unidad 4" --body "Comprobando la entrega exitosa del correo electronico."
-    ```
-  - Si usas Thunderbird en Debian XFCE: redactar el correo desde `usuario1` hacia `usuario2` con el asunto indicado y presionar **Enviar**.
-* **Qué debe verse:** La salida del comando mostrando el apretón de manos SMTP, la cabecera `MAIL FROM`, `RCPT TO` y la respuesta final del servidor `250 2.0.0 Ok: queued as ...`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 3: Diálogo SMTP de envío de correo exitoso]`  
-  > *Figura 3.3: Negociación SMTP y aceptación del mensaje en la cola de Postfix.*
+### 📸 Evidencia 3: Transacción SMTP de Envío de Correo (Swaks)
+* **Acción en el Cliente o Servidor:**
+  ```bash
+  swaks --to usuario2@empresa.local \
+        --from usuario1@empresa.local \
+        --server 192.168.50.10 \
+        --header "Subject: Prueba de Entrega - Unidad 4 Tarea 4.3" \
+        --body "Hola usuario2, este es un mensaje de prueba para verificar la entrega local en Maildir."
+  ```
+* **Qué debe verse:** Diálogo SMTP completo con códigos 250, autenticación y confirmación final `250 2.0.0 Ok: queued as ...`.
+
+![Figura 3.3: Negociación SMTP y aceptación del mensaje en la cola de Postfix](../Evidencias%20Capturas/Tarea_4.3_Correo_Postfix_Dovecot/Evidencia_3_Transaccion_SMTP_Swaks.png)  
+*Figura 3.3: Negociación SMTP y aceptación del mensaje en la cola de Postfix.*
 
 ---
 
-### 📸 Evidencia 4: Trazabilidad en Tiempo Real en `/var/log/mail.log` (Evidencia Clave)
+### 📸 Evidencia 4: Trazabilidad en Tiempo Real en los Logs de Postfix
 * **Comando en Debian Server:**
   ```bash
-  sudo tail -n 20 /var/log/mail.log
+  sudo journalctl -u postfix -n 25 --no-pager
   ```
-  *(O `sudo journalctl -u postfix -n 20`)*
-* **Qué debe verse:** La secuencia completa de logs:
-  - `postfix/smtpd: connect`
-  - `postfix/cleanup: message-id`
-  - `postfix/qmgr: from=<usuario1@empresa.local>`
-  - **`postfix/local: to=<usuario2@empresa.local>, status=sent (delivered to maildir)`** *(Resaltar este renglón)*
-  - `postfix/qmgr: removed`
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 4: Trazabilidad del flujo de entrega en /var/log/mail.log]`  
-  > *Figura 3.4: Registro del sistema certificando la entrega efectiva en el buzón Maildir del destinatario.*
+* **Qué debe verse:** La secuencia completa de logs: `connect`, `cleanup`, `qmgr: from=<usuario1@empresa.local>` y la línea clave:
+  `postfix/local[...]: to=<usuario1@empresa.local>, relay=local... status=sent (delivered to maildir)`.
+
+![Figura 3.4: Trazabilidad del flujo de entrega certificando status=sent delivered to maildir](../Evidencias%20Capturas/Tarea_4.3_Correo_Postfix_Dovecot/Evidencia_4_Trazabilidad_Log_Delivered_Maildir.png)  
+*Figura 3.4: Registro del sistema certificando la entrega efectiva en el buzón Maildir del destinatario.*
 
 ---
 
 ### 📸 Evidencia 5: Recepción del Correo en el Buzón Físico (`Maildir/new`)
 * **Comando en Debian Server:**
   ```bash
-  sudo ls -lh /home/usuario2/Maildir/new/
-  sudo cat /home/usuario2/Maildir/new/*
+  sudo ls -la /home/usuario2/Maildir/new/
+  sudo sh -c 'cat /home/usuario2/Maildir/new/*'
   ```
-* **Qué debe verse:** El archivo físico generado dentro de `new/`, con el asunto, remitente, fecha y cuerpo del mensaje legible.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 5: Inspección del mensaje en el sistema de archivos del usuario]`  
-  > *Figura 3.5: Almacenamiento del mensaje en formato individual Maildir en el directorio del destinatario.*
+* **Qué debe verse:** El archivo físico generado dentro de `new/`, con el asunto, remitente, identificador de cola y cuerpo legible.
+
+![Figura 3.5: Almacenamiento del mensaje en formato individual Maildir en el directorio del destinatario](../Evidencias%20Capturas/Tarea_4.3_Correo_Postfix_Dovecot/Evidencia_5_Buzon_Fisico_Maildir_cat.png)  
+*Figura 3.5: Almacenamiento del mensaje en formato individual Maildir en el directorio del destinatario.*
 
 ---
 
 ### 📸 Evidencia 6: Visualización del Correo en Cliente MUA (Mozilla Thunderbird en Debian XFCE)
 * **Acción en el Cliente Debian XFCE:**
-  - Abrir Mozilla Thunderbird con la cuenta de `usuario2@empresa.local`.
+  - Abrir Mozilla Thunderbird con la cuenta `usuario2@empresa.local` configurada con IMAP sobre TLS.
   - Mostrar la **Bandeja de entrada** con el correo recibido.
-  - Abrir el correo mostrando las cabeceras completas y el botón **Responder**.
-* **Qué debe verse:** La interfaz de Thunderbird en Debian XFCE con la cuenta sincronizada por IMAP sobre TLS y el mensaje de prueba desplegado.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 6: Visualización del correo en la bandeja de entrada de Thunderbird]`  
-  > *Figura 3.6: Recuperación del mensaje mediante el protocolo IMAP bajo TLS en cliente gráfico.*
+  - Enviar una respuesta hacia `usuario1@empresa.local` comprobando la bidireccionalidad.
+
+![Figura 3.6: Visualización del correo en la bandeja de entrada de Thunderbird](../Evidencias%20Capturas/Tarea_4.3_Correo_Postfix_Dovecot/Evidencia_6_Thunderbird_Bandeja_Entrada.png)  
+*Figura 3.6: Recuperación del mensaje mediante el protocolo IMAP bajo TLS en cliente gráfico.*
+
+![Figura 3.6b: Envío de correo de respuesta exitoso desde Thunderbird](../Evidencias%20Capturas/Tarea_4.3_Correo_Postfix_Dovecot/Evidencia_6_Extra_Thunderbird_Respuesta_Enviada.png)  
+*Figura 3.6b: Envío de correo de respuesta bidireccional hacia usuario1 verificado en la carpeta Sent.*
 
 ---
 

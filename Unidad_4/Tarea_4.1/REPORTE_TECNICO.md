@@ -28,13 +28,13 @@ La topología del laboratorio opera bajo un esquema cliente/servidor dentro de u
 ```mermaid
 flowchart TD
     subgraph VMware["Entorno Virtualizado VMware Workstation"]
-        subgraph RedLaboratorio["LAN Segment Aislado: 'Lab-Red' (192.168.50.0/24)"]
-            Server["Debian GNU/Linux 12 Server\nIP Fija: 192.168.50.10/24\nServicios: BIND9 DNS + ISC-DHCP-Server"]
-            ClienteXFCE["Estación Cliente: Debian 12 XFCE\nIP Dinámica (DHCP)\nGateway: 192.168.50.1 | DNS: 192.168.50.10"]
+        subgraph RedLaboratorio["LAN Segment Aislado: Lab-Red 192.168.50.0/24"]
+            Server["Debian GNU/Linux 12 Server<br/>IP Fija: 192.168.50.10/24<br/>Servicios: BIND9 DNS y ISC-DHCP-Server"]
+            ClienteXFCE["Estacion Cliente: Debian 12 XFCE<br/>IP Dinamica DHCP<br/>Gateway: 192.168.50.1 | DNS: 192.168.50.10"]
         end
-        Server -.->|Adaptador NAT (Salida a Internet)| Internet((Internet))
+        Server -.->|"Adaptador NAT - Salida a Internet"| Internet((Internet))
     end
-    Server <-->|Solicitud y Oferta DHCP / Consultas DNS UDP 53| ClienteXFCE
+    Server <-->|"Solicitud y Oferta DHCP / Consultas DNS UDP 53"| ClienteXFCE
 ```
 
 ### Tabla del Plan de Direccionamiento IP Corporativo
@@ -156,98 +156,74 @@ $TTL    86400
 
 ---
 
-### 📸 Evidencia 1: Validación de Sintaxis de BIND9 y DHCP en Debian Server
+### 📸 Evidencia 1: Validación de Sintaxis y Estado de BIND9 y DHCP en Debian Server
 * **Comando en Debian Server:**
   ```bash
   sudo named-checkconf
   sudo named-checkzone empresa.local /etc/bind/zones/db.empresa.local
   sudo named-checkzone 50.168.192.in-addr.arpa /etc/bind/zones/db.192.168.50
   sudo dhcpd -t -cf /etc/dhcp/dhcpd.conf
+  sudo systemctl status bind9 isc-dhcp-server --no-pager
   ```
-* **Qué debe verse:** La respuesta `OK` con el número de serie de ambas zonas DNS y la ausencia de errores en la sintaxis de DHCP.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 1: Verificación de sintaxis de BIND9 y DHCP]`  
-  > *Figura 1.1: Comprobación de integridad de los archivos de zona directa, inversa y configuración dhcpd.*
+* **Qué debe verse:** La respuesta `OK` con el número de serie de ambas zonas DNS, la ausencia de errores en la sintaxis de DHCP y el estado `active (running)` de los servicios.
+
+![Figura 1.1a: Verificación de zonas y estado del servicio DNS BIND9](../Evidencias%20Capturas/Tarea_4.1_DHCP_DNS/Evidencia_1_Status_BIND9_y_named-checkzone.png)  
+*Figura 1.1a: Comprobación de integridad de los archivos de zona directa, inversa y estado de BIND9.*
+
+![Figura 1.1b: Estado activo del servidor DHCP](../Evidencias%20Capturas/Tarea_4.1_DHCP_DNS/Evidencia_1_Status_isc-dhcp-server.png)  
+*Figura 1.1b: Confirmación de operatividad de isc-dhcp-server en la interfaz ens37.*
 
 ---
 
-### 📸 Evidencia 2: Solicitud y Concesión de IP Dinámica en el Cliente
+### 📸 Evidencia 2 y 3: Concesión de IP y Conexión en el Cliente Debian XFCE
 * **Comandos en el Cliente:**
-  - **En Debian XFCE (Linux):** `sudo dhclient -r && sudo dhclient -v` seguido de `ip a` y `cat /etc/resolv.conf`.
-  - *(En Windows):* `ipconfig /release && ipconfig /renew` seguido de `ipconfig /all`.
-* **Qué debe verse:** La dirección IP asignada dentro del rango `192.168.50.100 - 192.168.50.149`, con máscara `255.255.255.0` (`/24`), Gateway `192.168.50.1` y DNS `192.168.50.10`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 2: Asignación dinámica de IP por DHCP en el cliente]`  
-  > *Figura 1.2: Parámetros de red recibidos automáticamente desde el servidor Debian.*
+  - **En Debian XFCE (Linux):** `sudo nmcli networking off && sudo nmcli networking on` seguido de `ip a`.
+* **Qué debe verse:** La conexión establecida a la red virtual del laboratorio y la dirección IP asignada dinámicamente con Gateway y DNS.
 
----
-
-### 📸 Evidencia 3: Registro de Logs en Tiempo Real de DHCP (Proceso DORA)
-* **Comando en Debian Server:**
-  ```bash
-  sudo tail -n 25 /var/log/syslog | grep dhcpd
-  ```
-* **Qué debe verse:** Las cuatro fases del protocolo: `DHCPDISCOVER`, `DHCPOFFER`, `DHCPREQUEST` y `DHCPACK` dirigidas a la dirección MAC del cliente.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 3: Logs de transacción DHCP en /var/log/syslog]`  
-  > *Figura 1.3: Trazabilidad de la concesión de dirección IP registrada por el demonio dhcpd.*
+![Figura 1.2: Proceso de conexión y renovación DHCP en Debian XFCE](../Evidencias%20Capturas/Tarea_4.1_DHCP_DNS/Proceso_nmcli_conexion_cliente.png)  
+*Figura 1.2: Notificación del sistema de escritorio confirmando la conexión establecida mediante DHCP.*
 
 ---
 
 ### 📸 Evidencia 4: Demostración de la Reserva Estática por Dirección MAC
-* **Comando en Debian Server:** Mostrar el bloque `host cliente-vip` de `/etc/dhcp/dhcpd.conf`.
-* **Comando en el Cliente:**
-  - **En Linux (Debian XFCE):** `sudo dhclient -r && sudo dhclient -v` y `ip a show <interfaz>`
-  - *(En Windows):* `ipconfig /renew` y `ipconfig /all`
-* **Qué debe verse:** La coincidencia exacta entre la dirección física MAC configurada y la entrega garantizada de la IP fija `192.168.50.25`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 4: Comprobación de reserva estática por dirección MAC]`  
-  > *Figura 1.4: Asignación de la IP 192.168.50.25 a la interfaz física específica del cliente.*
+* **Comando en el Cliente:** `ip a`
+* **Qué debe verse:** La coincidencia exacta entre la dirección física MAC configurada (`00:0c:29:e6:8a:3a`) y la entrega garantizada de la IP reservada fija `192.168.50.25/24`.
+
+![Figura 1.3: Asignación de la IP fija 192.168.50.25 vinculada a la MAC del cliente](../Evidencias%20Capturas/Tarea_4.1_DHCP_DNS/Evidencia_2_y_3_Asignacion_IP_y_Reserva_MAC_ip_a.png)  
+*Figura 1.3: Confirmación en ens33 de la IP 192.168.50.25 obtenida mediante la directiva host cliente-vip.*
 
 ---
 
-### 📸 Evidencia 5: Resolución de Nombres Directa con nslookup y dig
-* **Comandos en el Cliente:**
-  - **En Linux (Debian XFCE):**
-    ```bash
-    nslookup www.empresa.local 192.168.50.10
-    nslookup web.empresa.local 192.168.50.10
-    dig @192.168.50.10 empresa.local MX +short
-    ```
-  - *(En Windows):*
-    ```cmd
-    nslookup www.empresa.local 192.168.50.10
-    nslookup web.empresa.local 192.168.50.10
-    nslookup -type=mx empresa.local 192.168.50.10
-    ```
+### 📸 Evidencia 5: Resolución de Nombres Directa con nslookup
+* **Comandos en el Cliente (Debian XFCE):**
+  ```bash
+  nslookup www.empresa.local 192.168.50.10
+  nslookup ftp.empresa.local 192.168.50.10
+  ```
 * **Qué debe verse:**
   - `www.empresa.local` resolviendo a `192.168.50.10`.
-  - El alias CNAME `web.empresa.local` apuntando canónicamente a `www.empresa.local`.
-  - El registro MX devolviendo `10 mail.empresa.local.`
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 5: Resolución directa de registros A, CNAME y MX]`  
-  > *Figura 1.5: Respuestas DNS autoritativas emitidas por el servidor BIND9 local.*
+  - `ftp.empresa.local` resolviendo a `192.168.50.10`.
+
+![Figura 1.4: Resolución directa de registros DNS A y CNAME](../Evidencias%20Capturas/Tarea_4.1_DHCP_DNS/Evidencia_4_Resolucion_Directa_A_CNAME_nslookup.png)  
+*Figura 1.4: Respuestas DNS autoritativas emitidas por el servidor BIND9 local.*
 
 ---
 
 ### 📸 Evidencia 6: Resolución Inversa (PTR) y Reenvío Externo (Forwarder)
-* **Comandos en el Cliente:**
-  - **En Linux (Debian XFCE):**
-    ```bash
-    nslookup 192.168.50.10 192.168.50.10
-    nslookup google.com 192.168.50.10
-    ```
-  - *(En Windows):*
-    ```cmd
-    nslookup 192.168.50.10 192.168.50.10
-    nslookup google.com 192.168.50.10
-    ```
+* **Comandos en el Cliente (Debian XFCE):**
+  ```bash
+  nslookup 192.168.50.10 192.168.50.10
+  nslookup google.com 192.168.50.10
+  ```
 * **Qué debe verse:**
-  - La IP `192.168.50.10` traduciéndose de regreso a `ns1.empresa.local`.
+  - La IP `192.168.50.10` traduciéndose de regreso a `server`, `mail`, `ftp`, `www` y `ns1.empresa.local.`
   - La consulta a `google.com` resolviendo correctamente gracias a los reenviadores públicos (`8.8.8.8` y `1.1.1.1`).
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 6: Resolución inversa y prueba de reenviadores forwarders]`  
-  > *Figura 1.6: Traducción de dirección IP a nombre y consulta recursiva hacia internet.*
+
+![Figura 1.5: Resolución inversa de punteros PTR](../Evidencias%20Capturas/Tarea_4.1_DHCP_DNS/Evidencia_5_Resolucion_Inversa_PTR.png)  
+*Figura 1.5: Traducción de dirección IP 192.168.50.10 hacia sus registros de nombres canónicos.*
+
+![Figura 1.6: Prueba de reenviadores DNS Forwarders hacia Internet](../Evidencias%20Capturas/Tarea_4.1_DHCP_DNS/Evidencia_6_Forwarders_DNS_Google_nslookup.png)  
+*Figura 1.6: Consulta recursiva exitosa hacia google.com a través del servidor local BIND9.*
 
 ---
 

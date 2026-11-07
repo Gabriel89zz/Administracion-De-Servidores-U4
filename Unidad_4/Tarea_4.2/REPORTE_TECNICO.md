@@ -25,31 +25,31 @@ El objetivo de este reporte es documentar el despliegue del stack LAMP (Linux, A
 
 ```mermaid
 flowchart LR
-    subgraph Cliente["Estación de Trabajo Cliente: Debian XFCE"]
+    subgraph Cliente["Estacion de Trabajo Cliente: Debian XFCE"]
         Browser["Navegador Web Firefox"]
         FTPClient["FileZilla / Terminal FTP"]
     end
 
     subgraph DebianServer["Debian GNU/Linux Server (192.168.50.10)"]
         subgraph WebStack["Stack Web Seguro"]
-            Apache80["Apache :80 (HTTP)\n[Redirección Permanente 301]"]
-            Apache443["Apache :443 (HTTPS / SSL/TLS)\nVirtualHost: empresa.local\nCertificado SAN con TLS 1.2 / 1.3"]
-            PHP["Intérprete PHP 8.2\n(Páginas dinámicas)"]
-            MariaDB[("Base de Datos MariaDB\nempresa_db")]
+            Apache80["Apache :80 (HTTP)<br/>Redireccion Permanente 301"]
+            Apache443["Apache :443 (HTTPS)<br/>VirtualHost: empresa.local<br/>Certificado SAN con TLS 1.2 / 1.3"]
+            PHP["Interprete PHP 8.2 / 8.4<br/>Paginas dinamicas"]
+            MariaDB[("Base de Datos MariaDB<br/>empresa_db")]
         end
 
         subgraph FTPStack["Servidor de Archivos Seguro"]
-            VSFTPD["vsftpd :21\nanonymous_enable = NO\nchroot_local_user = YES"]
-            Jail["Directorio Enjaulado\n/home/ftpuser/ftp/archivos/\n(Incapaz de acceder a /etc o /var)"]
+            VSFTPD["vsftpd :21<br/>anonymous_enable = NO<br/>chroot_local_user = YES"]
+            Jail["Directorio Enjaulado<br/>/home/ftpuser/ftp/archivos/<br/>Incapaz de acceder a /etc o /var"]
         end
     end
 
-    Browser -->|HTTP Solicitud :80| Apache80
-    Apache80 -.->|301 Redirect HTTPS| Apache443
-    Browser <==|Canal Cifrado SSL/TLS :443| Apache443
+    Browser -->|"HTTP Solicitud :80"| Apache80
+    Apache80 -.->|"301 Redirect HTTPS"| Apache443
+    Browser ==>|"Canal Cifrado SSL/TLS :443"| Apache443
     Apache443 --> PHP --> MariaDB
 
-    FTPClient <==|Conexión Autenticada :21| VSFTPD
+    FTPClient ==>|"Conexion Autenticada :21"| VSFTPD
     VSFTPD --> Jail
 ```
 
@@ -103,74 +103,76 @@ flowchart LR
 
 ---
 
-### 📸 Evidencia 1: Inspección del Virtual Host y Sintaxis de Apache
-* **Comandos en Debian Server:**
+### 📸 Evidencia 1: Estado Activo de los Servicios Web y Base de Datos (Apache2 y MariaDB)
+* **Comando en Debian Server:**
   ```bash
-  sudo apache2ctl -S
-  sudo apache2ctl configtest
+  sudo systemctl status apache2 mariadb --no-pager
   ```
-* **Qué debe verse:** El listado de los Virtual Hosts cargados en el puerto 80 y 443 asociados al dominio `empresa.local` y el mensaje final `Syntax OK`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 1: Verificación de sintaxis y Virtual Hosts de Apache2]`  
-  > *Figura 2.1: Comprobación del motor de Virtual Hosts y ausencia de errores de configuración en el servidor web.*
+* **Qué debe verse:** Ambos servicios en color verde mostrando el estado `active (running)`.
+
+![Figura 2.1: Estado activo de los demonios Apache2 y MariaDB](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_1_Status_Apache2_MariaDB.png)  
+*Figura 2.1: Confirmación de operatividad del servidor HTTP Apache y el motor relacional MariaDB.*
 
 ---
 
 ### 📸 Evidencia 2: Navegación Segura HTTPS y Portal Dinámico PHP/MariaDB
-* **Acción en el Cliente (Debian XFCE / Windows):** Abrir Firefox o Chrome e ingresar a `https://www.empresa.local`.
+* **Acción en el Cliente (Debian XFCE):** Abrir Firefox e ingresar a `https://www.empresa.local`.
 * **Qué debe verse:** La página web corporativa mostrando el banner azul de **🔒 HTTPS (Cifrado Activo)**, la versión de PHP detectada y el recuadro verde con la leyenda **Conectado exitosamente a MariaDB**.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 2: Navegación web en https://www.empresa.local]`  
-  > *Figura 2.2: Carga exitosa del portal web interactivo bajo canal cifrado HTTPS y conexión activa a MariaDB.*
+
+![Figura 2.2: Navegación web cifrada en https://www.empresa.local](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_2_Portal_HTTPS_Apache_PHP_MariaDB.png)  
+*Figura 2.2: Carga exitosa del portal web interactivo bajo canal cifrado HTTPS y conexión activa a MariaDB.*
+
+![Figura 2.2b: Respuesta de la API PHP consultando datos de MariaDB en JSON](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_2_Extra_Prueba_BD_MariaDB_JSON.png)  
+*Figura 2.2b: Consulta exitosa a la base de datos empresa_db retornando registros en formato JSON.*
 
 ---
 
 ### 📸 Evidencia 3: Inspección Visual del Certificado SSL/TLS (Nombres SAN)
-* **Acción en el Cliente:** Hacer clic en el candado del navegador > **Ver Certificado / Detalles**.
-* **Qué debe verse:** La ventana modal del visor de certificados mostrando:
-  - Sujeto: `CN = empresa.local`, Organización: `Empresa Corporativa S.A.`
-  - Algoritmo de firma y validez.
-  - Sección **Subject Alternative Name (SAN)** con los nombres `DNS:empresa.local`, `DNS:www.empresa.local` e `IP Address:192.168.50.10`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 3: Detalles del Certificado Digital SSL/TLS con SAN]`  
-  > *Figura 2.3: Validación criptográfica de la entidad emisora y los nombres alternativos del certificado.*
+* **Acción en el Cliente (Debian XFCE):** Clic en el candado del navegador Firefox > **Ver Certificado / Detalles**.
+* **Qué debe verse:** El visor de certificados mostrando el sujeto `CN = empresa.local`, Organización `Empresa Corporativa S.A.`, y el periodo de validez activo.
+
+![Figura 2.3: Detalles del Certificado Digital SSL/TLS con SAN](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_3_Certificado_SSL_Firefox_Detalle.png)  
+*Figura 2.3: Validación criptográfica de la entidad emisora y los nombres alternativos del certificado.*
 
 ---
 
-### 📸 Evidencia 4: Redirección Automática de HTTP a HTTPS y Consulta JSON
-* **Acción en el Cliente:**
-  - Ingresar en el navegador a `http://empresa.local` (puerto 80) y verificar la redirección instantánea a `https://`.
-  - Navegar a `https://www.empresa.local/db_test.php` mostrando la salida de la base de datos en formato JSON.
-* **Qué debe verse:** La respuesta JSON formateada con los empleados consultados de la tabla `empresa_db.empleados`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 4: Redirección permanente 301 y API JSON de MariaDB]`  
-  > *Figura 2.4: Comprobación de redirección segura forzosa e interoperabilidad PHP-MariaDB.*
+### 📸 Evidencia 4: Estado Activo del Servidor FTP Seguro (vsftpd)
+* **Comando en Debian Server:**
+  ```bash
+  sudo systemctl status vsftpd --no-pager
+  ```
+* **Qué debe verse:** El demonio `vsftpd` en estado `active (running)` escuchando en el puerto 21.
+
+![Figura 2.4: Estado de ejecución del servicio vsftpd](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_4_Status_VSFTPD.png)  
+*Figura 2.4: Demonio FTP de Debian Server activo y listo para conexiones seguras.*
 
 ---
 
-### 📸 Evidencia 5: Bloqueo de Acceso Anónimo en vsftpd
-* **Comando en el Cliente (Terminal Linux o Consola Windows):**
+### 📸 Evidencia 5: Autenticación y Conexión de Usuario al Servidor FTP
+* **Comando en el Cliente (Debian XFCE):**
   ```bash
   ftp 192.168.50.10
   ```
-  Ingresar usuario: `anonymous` (o dejar contraseña vacía).
-* **Qué debe verse:** El mensaje de error del servidor: `530 Permission denied` o `Login incorrect`, finalizando la sesión sin permitir el acceso al sistema de archivos.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 5: Rechazo de acceso a usuarios anónimos en vsftpd]`  
-  > *Figura 2.5: Implementación de directiva de seguridad impidiendo conexiones no autenticadas.*
+  Ingresar usuario: `ftpuser` y contraseña: `Alumno123`.
+* **Qué debe verse:** Respuesta del servidor `230 Login successful` y establecimiento del modo binario.
+
+![Figura 2.5: Inicio de sesión exitoso con usuario autenticado en FTP](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_5_Login_FTP_230_Exitoso.png)  
+*Figura 2.5: Acceso validado para ftpuser tras superar el filtro PAM del sistema operativo.*
+
+![Figura 2.5b: Transferencia gráfica de archivos en cliente FileZilla](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_5_Extra_FileZilla_Subida_Archivos.png)  
+*Figura 2.5b: Conexión y transferencia exitosa de archivos mediante la interfaz de FileZilla en Debian XFCE.*
 
 ---
 
-### 📸 Evidencia 6: Demostración de Enjaulamiento (Chroot Jail) y Transferencia
-* **Acción en el Cliente (Terminal FTP o FileZilla):**
-  - Iniciar sesión con `ftpuser` y contraseña `Alumno123!`.
+### 📸 Evidencia 6: Demostración de Enjaulamiento (Chroot Jail)
+* **Acción en el Cliente (Terminal FTP):**
   - Ejecutar `pwd` (muestra `/`).
-  - Ejecutar `cd ..`, `cd /etc` o `cd /var` (muestra `550 Failed to change directory`).
-  - Ingresar a `cd archivos`, listar con `ls` o `dir`, descargar archivo de prueba con `get` y subir uno nuevo con `put`.
-* **Qué debe verse:** El confinamiento dentro de la jaula chroot donde la raíz es virtualizada, la denegación de escape y la subida/descarga exitosa con código `226 Transfer complete`.
-* **Espacio para la captura en tu documento:**
-  > `[INSERTAR AQUÍ CAPTURA 6: Verificación de Chroot Jail y transferencia de archivos]`  
-  > *Figura 2.6: Evidencia del aislamiento del usuario impidiendo explorar el sistema operativo host.*
+  - Ejecutar `cd ..` (permanece confinado en `/`).
+  - Ejecutar `cd /etc` (el servidor bloquea el escape arrojando `550 Failed to change directory`).
+* **Qué debe verse:** El confinamiento estricto dentro de la jaula chroot impidiendo acceder a directorios sensibles del sistema host.
+
+![Figura 2.6: Verificación del confinamiento Chroot Jail en vsftpd](../Evidencias%20Capturas/Tarea_4.2_Web_FTP/Evidencia_6_Encarcelamiento_Chroot_FTP.png)  
+*Figura 2.6: Evidencia del aislamiento del usuario impidiendo explorar el sistema operativo host.*
 
 ---
 
