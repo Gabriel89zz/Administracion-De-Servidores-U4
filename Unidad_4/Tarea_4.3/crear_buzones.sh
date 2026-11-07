@@ -9,13 +9,14 @@ crear_usuario() {
     local PASSWORD=$2
 
     if id "$USERNAME" &>/dev/null; then
-        echo "[!] El usuario $USERNAME ya existe."
+        echo "[!] El usuario $USERNAME ya existe. Actualizando contraseña..."
     else
         echo "[*] Creando usuario $USERNAME..."
         sudo adduser --gecos "" --disabled-password "$USERNAME"
-        echo "$USERNAME:$PASSWORD" | sudo chpasswd
-        echo "[+] Usuario $USERNAME creado con contraseña configurada."
     fi
+
+    echo "$USERNAME:$PASSWORD" | sudo chpasswd
+    echo "[+] Contraseña establecida para $USERNAME."
 
     echo "[*] Inicializando directorios Maildir para $USERNAME..."
     local HOME_DIR="/home/$USERNAME"
