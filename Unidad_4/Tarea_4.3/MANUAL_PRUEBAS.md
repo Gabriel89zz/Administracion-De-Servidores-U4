@@ -34,7 +34,6 @@ sudo cp master.cf /etc/postfix/master.cf
 # Copiar configuración unificada nativa de Dovecot 2.4
 sudo cp dovecot.conf /etc/dovecot/dovecot.conf
 ```
-```
 
 ### Paso 1.4: Crear Usuarios y Buzones Maildir
 Ejecuta el script incluido:
@@ -137,7 +136,7 @@ Observarás todas las cabeceras SMTP (`From:`, `To:`, `Subject:`, `Date:`) y el 
 2. Agrega una cuenta de correo:
    - **Nombre:** Usuario 2
    - **Dirección de correo:** `usuario2@empresa.local`
-   - **Contraseña:** `Alumno123!`
+   - **Contraseña:** `Alumno123`
 3. Haz clic en **Configurar manualmente**:
    - **Servidor de entrada (IMAP):**
      - Host: `mail.empresa.local` (o `192.168.50.10`)
