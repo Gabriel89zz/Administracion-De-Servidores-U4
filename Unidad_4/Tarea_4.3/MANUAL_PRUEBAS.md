@@ -31,14 +31,9 @@ cd ~/Administracion-De-Servidores-U4/Unidad_4/Tarea_4.3/
 sudo cp main.cf /etc/postfix/main.cf
 sudo cp master.cf /etc/postfix/master.cf
 
-# Copiar configuración de Dovecot
+# Copiar configuración unificada nativa de Dovecot 2.4
 sudo cp dovecot.conf /etc/dovecot/dovecot.conf
-sudo cp 10-mail.conf /etc/dovecot/conf.d/10-mail.conf
-sudo cp 10-auth.conf /etc/dovecot/conf.d/10-auth.conf
-sudo cp 10-ssl.conf /etc/dovecot/conf.d/10-ssl.conf
-
-# Validar permisos de socket de autenticación en /etc/dovecot/conf.d/10-master.conf
-sudo sed -i '/service auth {/,/}/ s/#unix_listener \/var\/spool\/postfix\/private\/auth/unix_listener \/var\/spool\/postfix\/private\/auth/' /etc/dovecot/conf.d/10-master.conf
+```
 ```
 
 ### Paso 1.4: Crear Usuarios y Buzones Maildir
