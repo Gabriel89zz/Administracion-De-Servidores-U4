@@ -1,225 +1,228 @@
-# Guion Maestro del Video Tutorial: Tarea 4.1 (Servidor DHCP e Infraestructura DNS BIND9)
+# Guion Maestro de Demostración Técnica: Tarea 4.1 (Servidor DHCP e Infraestructura DNS BIND9)
 
-> **Perfil del Presentador:** Ingeniero Senior en Sistemas y Administrador de Infraestructuras Linux.  
-> **Formato de Grabación:** OBS Studio con captura de pantalla y **cámara web activa en la esquina inferior derecha** en todo momento.  
-> **Disposición de Pantalla:** Dos máquinas virtuales en VMware Workstation:
-> - **Lado Izquierdo:** `Debian Server` (Debian 12 sin entorno gráfico / Consola SSH). IP estática: `192.168.50.10`.
-> - **Lado Derecho:** `Debian XFCE Cliente` (Debian 12 con interfaz gráfica XFCE). MAC: `00:0c:29:e6:8a:3a`.
-> **Segmento de Red:** Privado y aislado mediante VMware LAN Segment `Lab-Red` (`192.168.50.0/24`).  
-> **Duración aproximada:** 10 a 15 minutos (Tutorial formativo completo).
+> **Perfil del Expositor:** Ingeniero en Sistemas y Administrador de Infraestructura de Servidores Linux.  
+> **Tono y Estilo:** Formal, técnico, académico, riguroso y didáctico. Sin frases informales ni modismos de redes sociales.  
+> **Formato de Grabación:** OBS Studio con captura de pantalla limpia y **cámara web activa en la esquina inferior derecha** durante toda la demostración.  
+> **Disposición del Entorno en Pantalla:** Dos máquinas virtuales en VMware Workstation:
+> - **Lado Izquierdo:** `Debian Server` (Servidor de infraestructura base sin entorno gráfico). IP fija: `192.168.50.10`.
+> - **Lado Derecho:** `Debian XFCE Cliente` (Estación de trabajo cliente). MAC: `00:0c:29:e6:8a:3a`.
+> **Segmento de Red:** VMware LAN Segment privado `Lab-Red` (`192.168.50.0/24`).  
+> **Duración estimada:** 12 a 15 minutos.
 
 ---
 
-## ESTRUCTURA DEL TUTORIAL
+## ESTRUCTURA DE LA DEMOSTRACIÓN
 
 ```
-├── A. INTRODUCCIÓN Y REQUISITOS (00:00 - 02:00)
-│   ├── Presentación y planteamiento del problema
-│   ├── Objetivos didácticos y arquitectura del laboratorio
-│   └── Por qué utilizamos VMware LAN Segment
+├── A. INTRODUCCIÓN Y ARQUITECTURA DE LABORATORIO (00:00 - 02:30)
+│   ├── Identificación de la práctica y objetivos de infraestructura
+│   ├── Justificación técnica del uso de dos máquinas virtuales
+│   ├── Independencia del sistema operativo cliente (Linux / Windows)
+│   └── Configuración de red aislada en VMware (LAN Segment vs NAT/Bridged)
 │
-├── B. FUNDAMENTOS TÉCNICOS ESENCIALES (02:00 - 04:00)
-│   ├── Protocolo DHCP y el ciclo de vida DORA
-│   └── Anatomía del Sistema de Nombres de Dominio (DNS) y BIND9
+├── B. FUNDAMENTOS TÉCNICOS Y PROTOCOLOS (02:30 - 04:30)
+│   ├── Mecánica del protocolo DHCP: Ciclo de cuatro fases DORA (UDP 67/68)
+│   └── Estructura jerárquica de BIND9: Zonas autoritativas e inversas (.in-addr.arpa)
 │
-├── C. IMPLEMENTACIÓN PRÁCTICA PASO A PASO (04:00 - 12:30)
-│   ├── Paso 1: Inspección de interfaces de red del Servidor
-│   ├── Paso 2: Instalación de paquetes con APT
-│   ├── Paso 3: Configuración del Demonio DHCP (Rangos, Exclusiones y Reserva MAC)
-│   ├── Paso 4: Validación de sintaxis e inicio de ISC-DHCP-Server
-│   ├── Paso 5: Configuración de BIND9 (Forwarders, Zonas Directa e Inversa)
-│   ├── Paso 6: Validación criptográfica y sintáctica de Zonas DNS
-│   └── Paso 7: Verificación en tiempo real desde la estación Cliente Debian XFCE
+├── C. DESARROLLO, ANÁLISIS LÍNEA POR LÍNEA Y PRUEBAS EN VIVO (04:30 - 13:30)
+│   ├── Paso 1: Verificación de direccionamiento en el Servidor (ip a)
+│   ├── Paso 2: Instalación de paquetes de infraestructura con APT
+│   ├── Paso 3: Configuración de la interfaz DHCP (/etc/default/isc-dhcp-server)
+│   ├── Paso 4: Desglose exhaustivo línea por línea de /etc/dhcp/dhcpd.conf
+│   ├── Paso 5: Desglose línea por línea de BIND9 (Options, Zonas Directa e Inversa)
+│   ├── Paso 6: Validación estricta de sintaxis e inicio de demonios
+│   └── Paso 7: Comprobación y auditoría en vivo desde la estación cliente
 │
-└── D. CONCLUSIÓN Y BUENAS PRÁCTICAS (12:30 - 14:00)
-    ├── Resumen técnico de la infraestructura implementada
-    └── Enlaces al repositorio GitHub y cierre
+└── D. CONCLUSIONES TÉCNICAS Y CIERRE FORMAL (13:30 - 14:30)
+    ├── Validación de cumplimiento de requerimientos
+    └── Disponibilidad de artefactos en el repositorio y despedida formal
 ```
 
 ---
 
-## A. INTRODUCCIÓN Y REQUISITOS
+## A. INTRODUCCIÓN Y ARQUITECTURA DE LABORATORIO
 
-### [00:00 - 02:00] Escena 1: Presentación, Arquitectura y Demostración del Resultado Final
+### [00:00 - 02:30] Escena 1: Presentación, Justificación del Entorno y Modelo Cliente/Servidor
 
-* **En pantalla:** Escritorio de Windows con VMware Workstation en pantalla completa mostrando las dos máquinas virtuales divididas equitativamente: a la izquierda `DebianServer` en terminal negra con prompt verde, a la derecha `Debian XFCE` con su escritorio limpio. Cámara web visible en la esquina inferior derecha.
+* **En pantalla:** Escritorio mostrando las dos máquinas virtuales en paralelo sobre VMware Workstation: a la izquierda la consola de `Debian Server` y a la derecha el escritorio de `Debian XFCE`. Cámara web visible en la esquina inferior derecha.
 * **Lo que dices verbalmente:**
-  > *"Hola a todos y bienvenidos a este tutorial de nivel profesional sobre Administración de Servidores Linux. Mi nombre es [Tu Nombre Completo], y el día de hoy vamos a construir desde cero los dos pilares más críticos de cualquier red corporativa: un servidor **DHCP** automatizado y un sistema de nombres de dominio **DNS autoritativo** utilizando **BIND9** sobre **Debian GNU/Linux 12**.*
+  > *"Estimado profesor y compañeros, les doy la bienvenida a la presentación técnica de la Tarea 4.1 de la materia Administración de Servidores, correspondiente a la Unidad 4: Servidores DNS, Web, FTP, DHCP y Correo Electrónico. Mi nombre es [Tu Nombre Completo].*
   > 
-  > *Imaginemos por un momento una empresa con cientos de ordenadores. Si tuviéramos que configurar a mano la dirección IP, la máscara, la puerta de enlace y el DNS en cada equipo, no solo perderíamos días de trabajo, sino que el riesgo de generar conflictos de IP duplicadas sería altísimo. Aquí es donde entra en juego el protocolo **DHCP**.*
+  > *El propósito central de esta práctica es implementar, configurar y auditar los dos servicios esenciales de infraestructura que gobiernan las comunicaciones en una red corporativa: el protocolo de configuración dinámica de host a través de **ISC-DHCP-Server**, y la resolución jerárquica de nombres mediante el servidor autoritativo **BIND9** sobre **Debian GNU/Linux 12**.*
   > 
-  > *Por otro lado, los seres humanos nos comunicamos mediante nombres legibles como `www.empresa.local`, pero los enrutadores y conmutadores solo entienden direcciones IP numéricas como `192.168.50.10`. El servidor **DNS** es la guía telefónica digital que traduce esos nombres instantáneamente.*
+  > *Antes de analizar la configuración, es fundamental responder a una pregunta técnica clave: **¿Por qué estamos utilizando dos máquinas virtuales independientes en este laboratorio?***
+  > *La razón es que un servicio de red nunca debe evaluarse de forma aislada sobre la misma máquina que lo aloja. Utilizar dos máquinas virtuales recrea con fidelidad la arquitectura cliente/servidor del mundo real:*
+  > *1. **Aislamiento de roles:** El servidor actúa como el proveedor central de recursos y directivas, mientras que el cliente opera como el nodo consumidor.*
+  > *2. **Pruebas de difusión real en capa de enlace:** El protocolo DHCP opera mediante paquetes de broadcast (`255.255.255.255`). Para demostrar que el servidor responde correctamente a una solicitud de red auténtica, el paquete debe atravesar un medio de transmisión virtualizado entre dos adaptadores de red distintos.*
+  > *3. **Independencia del Sistema Operativo Cliente:** Aunque en este laboratorio estamos utilizando una máquina cliente con **Debian XFCE**, es imperativo aclarar que el cliente podría ser indistintamente una estación de trabajo con **Windows 10, Windows 11, Ubuntu o cualquier otra distribución Linux**. Los protocolos DHCP y DNS son estándares abiertos definidos por RFCs del IETF (específicamente RFC 2131 para DHCP y RFC 1034 y 1035 para DNS). El servidor responde de manera universal e idéntica a cualquier sistema operativo que respete el estándar.*
   > 
-  > *Al finalizar este video, habremos conseguido que nuestro cliente Debian XFCE reciba automáticamente sus parámetros de red, demostraremos cómo aplicar rangos dinámicos, cómo crear exclusiones de seguridad para impresoras y cómo aplicar una reserva fija mediante la dirección física MAC del equipo. Finalmente, resolveremos dominios locales directos, inversos y consultas hacia internet mediante reenviadores recursivos.*
-  > 
-  > *Para seguir este tutorial solo necesitas dos máquinas virtuales en VMware: nuestro servidor Debian Server configurado con dos tarjetas de red —una NAT para descargar paquetes y una conectada al LAN Segment privado llamado `Lab-Red`— y una máquina cliente Debian XFCE conectada exclusivamente a ese mismo segmento `Lab-Red`. No utilices el modo Puente o Bridged, ya que entrarías en conflicto con el router físico de tu casa. ¡Comencemos!"*
+  > *Ambas máquinas están interconectadas a través de un **LAN Segment** en VMware denominado `Lab-Red`, operando en la subred privada `192.168.50.0/24`. Este aislamiento garantiza que nuestro servidor DHCP no colisione con el enrutador físico doméstico ni emita concesiones indebidas fuera del laboratorio."*
 
 ---
 
-## B. FUNDAMENTOS TÉCNICOS ESENCIALES
+## B. FUNDAMENTOS TÉCNICOS Y PROTOCOLOS
 
-### [02:00 - 04:00] Escena 2: El Ciclo DORA de DHCP y la Jerarquía de Zonas en BIND9
+### [02:30 - 04:30] Escena 2: Mecánica de Concesión DORA y Jerarquía DNS
 
-* **En pantalla:** Diagrama visual de la arquitectura o terminal del servidor preparada para trabajar.
+* **En pantalla:** Terminal del servidor lista o diagrama de arquitectura.
 * **Lo que dices verbalmente:**
-  > *"Antes de tocar un solo comando, es fundamental entender qué sucede debajo del capó.*
+  > *"Analicemos brevemente el funcionamiento técnico de ambos protocolos a nivel de paquetes de red.*
   > 
-  > *El protocolo DHCP opera sobre el protocolo de transporte UDP en los puertos 67 para el servidor y 68 para el cliente, mediante un proceso de cuatro pasos conocido por el acrónimo **DORA**:*
-  > *1. **Discover (Descubrimiento):** Cuando el cliente arranca sin IP, envía un paquete de difusión masiva o broadcast a la dirección `255.255.255.255` diciendo: '¿Hay algún servidor DHCP en esta red?'.*
-  > *2. **Offer (Oferta):** Nuestro servidor Debian escucha la petición y le responde con un paquete Offer diciendo: 'Tengo disponible la IP 192.168.50.100 para ti'.*
-  > *3. **Request (Solicitud):** El cliente contesta: 'Acepto formalmente tu oferta de la IP 192.168.50.100'.*
-  > *4. **Acknowledge (Reconocimiento):** El servidor sella la concesión en su base de datos de leases y le entrega la configuración completa: IP, máscara `/24`, Gateway `192.168.50.1` y servidor DNS `192.168.50.10`.*
+  > *El protocolo **DHCP** opera sobre el protocolo de transporte UDP, utilizando el puerto de destino 67 en el servidor y el puerto 68 en el cliente. Su funcionamiento se basa en una máquina de estados de cuatro fases denominada **DORA**:*
+  > *1. **Discover (Descubrimiento):** El cliente, careciendo de dirección IP, genera un paquete UDP con dirección IP de origen `0.0.0.0` y dirección de destino `255.255.255.255`, interrogando a la red sobre la presencia de un servidor DHCP.*
+  > *2. **Offer (Oferta):** El servidor `isc-dhcp-server`, tras consultar su pool disponible en memoria, emite una oferta conteniendo una dirección IP tentativa, la máscara de subred y el tiempo de concesión.*
+  > *3. **Request (Solicitud):** El cliente responde formalizando la aceptación de la oferta específica emitida por el servidor.*
+  > *4. **Acknowledge (Reconocimiento o ACK):** El servidor ratifica la concesión, escribe el registro en su base de datos de leases en `/var/lib/dhcp/dhcpd.leases` y transfiere los parámetros de red secundarios, como la puerta de enlace predeterminada y el servidor DNS corporativo.*
   > 
-  > *Por el lado de **DNS**, utilizaremos **BIND9** (Berkeley Internet Name Domain), el estándar de facto en servidores de nombres en internet. En BIND9 manejamos dos conceptos vitales:*
-  > *- La **Zona Directa**, que traduce nombres de host a direcciones IPv4 mediante registros de tipo **A** (Address) o alias mediante registros **CNAME** (Canonical Name).*
-  > *- La **Zona Inversa**, que hace exactamente lo contrario: a partir de una IP nos devuelve el nombre del equipo mediante registros **PTR** (Pointer). Para ello, la red se nombra invirtiendo los octetos bajo el dominio especial `.in-addr.arpa`, convirtiendo nuestra red `192.168.50.0` en `50.168.192.in-addr.arpa`.*
+  > *Por su parte, **BIND9** (Berkeley Internet Name Domain) actúa como servidor de nombres autoritativo para el dominio `empresa.local`. Su arquitectura desacopla dos tipos de zonas:*
+  > *- La **Zona Directa**, que mapea nombres de host a direcciones numéricas IPv4 mediante registros de recurso tipo **A** (Address), y genera alias mediante registros **CNAME** (Canonical Name).*
+  > *- La **Zona Inversa**, que resuelve la dirección IP de origen hacia su nombre de host canónico mediante registros **PTR** (Pointer). Para implementar esta zona, el espacio de direcciones `192.168.50.0` se invierte estructurándose bajo el árbol especializado `50.168.192.in-addr.arpa`.*
   > 
-  > *Con estos conceptos claros en la mente, pasemos directamente a la consola a configurar los servicios."*
+  > *Pasemos ahora a la implementación técnica detallada en el servidor."*
 
 ---
 
-## C. IMPLEMENTACIÓN PRÁCTICA PASO A PASO
+## C. DESARROLLO, ANÁLISIS LÍNEA POR LÍNEA Y PRUEBAS EN VIVO
 
-### [04:00 - 05:15] Paso 1: Inspección y Preparación de Interfaces de Red
+### [04:30 - 05:45] Paso 1: Verificación de Interfaces de Red en el Servidor
 
-* **En pantalla:** Terminal de `Debian Server` ocupando la mitad izquierda.
+* **En pantalla:** Consola de `Debian Server` en el lado izquierdo.
 * **Lo que dices verbalmente:**
-  > *"El primer paso crítico antes de instalar cualquier servicio es verificar nuestras tarjetas de red. En nuestro servidor necesitamos dos interfaces físicas virtuales: una que se conecte a internet para descargar paquetes y otra conectada al segmento del laboratorio con una IP fija.*
-  > 
-  > *Para inspeccionar nuestras tarjetas utilizaremos el comando `ip a`:*
+  > *"Iniciamos sesión administrativa en `Debian Server`. Lo primero que debemos constatar es la correcta configuración de las interfaces de red del servidor utilizando el comando `ip a`:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
   ip a
   ```
 * **Explicación técnica del comando:**
-  > *"El comando `ip` pertenece al paquete moderno `iproute2` y el argumento `a` es la abreviatura de `address`. Nos muestra todas las interfaces disponibles en el kernel Linux.*
+  > *- `ip` es la herramienta estándar del paquete `iproute2` para la gestión de pilas de red en el kernel Linux, y el argumento `a` (abreviatura de `address`) enumera el estado de los enlaces y sus direcciones asignadas.*
   > 
-  > *Si observamos la salida en pantalla, tenemos:*
-  > *1. La interfaz `lo` o bucle local con la IP `127.0.0.1`.*
-  > *2. La interfaz `ens33`, que tiene una IP asignada por NAT para descargar paquetes.*
-  > *3. Y la interfaz `ens37`, que es nuestra tarjeta de laboratorio. Observen que ya tiene configurada la IP estática `192.168.50.10/24`.*
+  > *Al inspeccionar la salida en pantalla observamos tres adaptadores:*
+  > *1. `lo`: La interfaz de bucle local con la dirección `127.0.0.1/8`.*
+  > *2. `ens33`: Nuestra primera interfaz de red virtual, configurada bajo NAT, permitiendo la comunicación externa hacia repositorios de paquetes.*
+  > *3. `ens37`: Nuestra segunda interfaz de red física virtual, vinculada al LAN Segment `Lab-Red`. Observamos que tiene asignada de forma estática la dirección `192.168.50.10/24`.*
   > 
-  > *Esta IP estática se configuró en el archivo `/etc/network/interfaces`. Es indispensable que el servidor tenga una IP fija, porque si el servidor DHCP o DNS cambiara de IP con cada reinicio, toda la red se quedaría sin servicio."*
+  > *Es un requisito riguroso que todo servidor de infraestructura posea una IP fija e inmutable, ya que de lo contrario los clientes perderían la referencia de red ante cualquier reinicio del sistema."*
 
 ---
 
-### [05:15 - 06:45] Paso 2: Instalación de Paquetes Base con APT
+### [05:45 - 07:00] Paso 2: Instalación de Paquetes de Infraestructura con APT
 
 * **En pantalla:** Consola de Debian Server.
 * **Lo que dices verbalmente:**
-  > *"Ahora que confirmamos nuestra conectividad, procederemos a instalar los paquetes necesarios: `isc-dhcp-server` para el servicio DHCP, y el ecosistema completo de `bind9` junto con sus utilidades y herramientas de diagnóstico `dnsutils`.*
-  > 
-  > *Ejecutamos el comando:*
+  > *"Procedemos con la instalación de los paquetes requeridos desde los repositorios oficiales de Debian ejecutando el siguiente comando con privilegios de superusuario:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
   sudo apt update && sudo apt install -y isc-dhcp-server bind9 bind9utils bind9-doc dnsutils
   ```
 * **Explicación técnica del comando:**
-  > *"Analicemos la anatomía de este comando:*
-  > *- Utilizamos `sudo` porque la instalación de servicios y modificación de archivos en `/etc` requiere privilegios de superusuario root.*
-  > *- `apt update` actualiza los índices locales de repositorios para asegurar que instalemos las versiones más recientes.*
-  > *- El operador `&&` es un condicional que solo ejecuta el segundo comando si el primero finalizó con código de éxito cero.*
-  > *- El parámetro `-y` responde automáticamente 'sí' a la confirmación de descarga de paquetes.*
-  > *- Paquetes instalados: `isc-dhcp-server` es el demonio DHCP oficial del Internet Systems Consortium; `bind9` es el servidor DNS; `bind9utils` nos provee binarios esenciales como `named-checkconf` y `named-checkzone` para validar que nuestros archivos no tengan errores de sintaxis; y `dnsutils` nos proporciona comandos de diagnóstico indispensables como `nslookup` y `dig`.*
+  > *- `sudo`: Eleva la ejecución con privilegios de root para modificar las rutas del sistema en `/etc` y `/var`.*
+  > *- `apt update`: Sincroniza los índices locales con los servidores de paquetes de Debian.*
+  > *- El operador `&&`: Garantiza la ejecución secuencial únicamente si la actualización concluye con éxito.*
+  > *- `apt install -y`: Instala los paquetes respondiendo afirmativamente de forma no interactiva.*
+  > *- Los paquetes seleccionados son:*
+  >   - `isc-dhcp-server`: El demonio `dhcpd` desarrollado por el Internet Systems Consortium.*
+  >   - `bind9`: El demonio `named` que implementa el servicio DNS.*
+  >   - `bind9utils`: Conjunto de herramientas administrativas indispensables, tales como `named-checkconf` y `named-checkzone`.*
+  >   - `dnsutils`: Paquete que provee utilidades cliente de diagnóstico DNS como `nslookup` y `dig`.*
   > 
-  > *¡Atención a este detalle vital! Al finalizar la instalación, es muy común que Debian muestre un error en color rojo indicando que `isc-dhcp-server.service failed`. No se alarmen: esto es completamente normal. Debian intenta iniciar el servicio automáticamente al instalarlo, pero como todavía no le hemos dicho en qué tarjeta escuchar ni qué rango repartir, el servicio se detiene por seguridad."*
+  > *Nota técnica: Al finalizar la instalación de `isc-dhcp-server`, Debian intentará levantar el servicio y reportará un fallo de inicialización. Esto es un comportamiento normal y esperado, ya que el archivo de configuración aún no contiene una subred declarada que coincida con ninguna interfaz física del servidor."*
 
 ---
 
-### [06:45 - 08:30] Paso 3: Configuración del Servidor DHCP (Rangos, Exclusión y Reserva)
+### [07:00 - 09:30] Paso 3: Análisis Detallado Línea por Línea de `dhcpd.conf`
 
-* **En pantalla:** Editor o visualizador mostrando `/etc/default/isc-dhcp-server` y luego `/etc/dhcp/dhcpd.conf`.
+* **En pantalla:** Terminal de Debian Server mostrando el archivo `/etc/dhcp/dhcpd.conf` con numeración de líneas.
 * **Lo que dices verbalmente:**
-  > *"Para poner en marcha el servidor DHCP debemos configurar dos archivos clave.*
+  > *"Antes de configurar las directivas del pool, en el archivo `/etc/default/isc-dhcp-server` definimos la variable `INTERFACESv4="ens37"` para indicarle al demonio que enlace sus sockets exclusivamente a la interfaz del laboratorio.*
   > 
-  > *El primero es `/etc/default/isc-dhcp-server`. Aquí le indicamos al sistema operativo a través de qué tarjeta de red debe emitir los paquetes de concesión.*
-  > *Lo abrimos con un editor como `nano` ejecutando `sudo nano /etc/default/isc-dhcp-server`. Buscamos la línea `INTERFACESv4` y nos aseguramos de que tenga el nombre exacto de nuestra tarjeta del laboratorio: `INTERFACESv4="ens37"`.*
-  > 
-  > *El segundo archivo, y el más importante, es `/etc/dhcp/dhcpd.conf`. Este archivo define las reglas de direccionamiento de toda la empresa.*
-  > 
-  > *Veamos su contenido en pantalla:"*
+  > *Para inspeccionar de manera limpia y profesional el archivo principal de configuración sin riesgo de alterar accidentalmente sus directivas, utilizaremos el comando `cat -n`. El parámetro `-n` numera cada una de las líneas, lo que nos permite auditar su estructura con absoluta precisión:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
-  cat /etc/dhcp/dhcpd.conf
+  cat -n /etc/dhcp/dhcpd.conf
   ```
-* **Explicación técnica del archivo `dhcpd.conf`:**
-  > *"Desglosemos las directivas fundamentales de este archivo:*
-  > *- `default-lease-time 600;` y `max-lease-time 7200;`: Definen el tiempo en segundos que un cliente puede conservar una IP antes de tener que renovarla (10 minutos por defecto, 2 horas como máximo).*
-  > *- `authoritative;`: Esta directiva es vital; le indica a la red que este servidor es la autoridad oficial y tiene el poder de rechazar concesiones incorrectas de otros routers intrusos.*
+* **Explicación detallada línea por línea:**
+  > *"Analicemos la estructura técnica del archivo en pantalla:*
   > 
-  > *A continuación declaramos la subred corporativa:*
+  > *- **Línea 5 (`option domain-name "empresa.local";`):** Define el sufijo DNS predeterminado que el cliente anexará a cualquier consulta de nombre no calificado.*
+  > *- **Línea 8 (`option domain-name-servers 192.168.50.10;`):** Le transmite al cliente la dirección IP de nuestro servidor DNS BIND9, consolidando la integración entre ambos servicios.*
+  > *- **Línea 11 (`default-lease-time 600;`):** Establece el tiempo de concesión estándar en 600 segundos (10 minutos), momento en el cual el cliente intentará renovar su IP.*
+  > *- **Línea 12 (`max-lease-time 7200;`):** Fija el límite máximo de concesión en 7200 segundos (2 horas) si el cliente solicita una extensión.*
+  > *- **Línea 15 (`authoritative;`):** Indica formalmente que este servidor es la autoridad de direccionamiento oficial para este segmento de red, permitiéndole enviar paquetes `DHCPNAK` para revocar concesiones obsoletas.*
+  > 
+  > *A partir de la línea 18 declaramos el bloque de red principal:*
+  > *- **Línea 18 (`subnet 192.168.50.0 netmask 255.255.255.0 {`):** Define el alcance de la red Clase C y su máscara de 24 bits.*
+  > *- **Líneas 21 y 23:** Observen con atención cómo implementamos la exclusión exigida en la práctica:*
+  >   - `range 192.168.50.100 192.168.50.149;`
+  >   - `range 192.168.50.161 192.168.50.200;`
+  >   *El requerimiento solicita entregar direcciones dinámicas en el rango .100 al .200, pero protegiendo las direcciones .150 a la .160 para dispositivos fijos como impresoras corporativas. En lugar de directivas complejas, dividimos el pool en dos bloques contiguos. El intervalo del 150 al 160 queda matemáticamente fuera de la asignación dinámica.*
+  > *- **Línea 26 (`option routers 192.168.50.1;`):** Inyecta la puerta de enlace predeterminada hacia la tabla de enrutamiento del cliente.*
+  > *- **Línea 29 (`option broadcast-address 192.168.50.255;`):** Especifica la dirección de difusión del segmento.*
+  > 
+  > *A partir de la línea 40 observamos la reserva estática por hardware:*
   > ```text
-  > subnet 192.168.50.0 netmask 255.255.255.0 {
-  >     range 192.168.50.100 192.168.50.149;
-  >     range 192.168.50.161 192.168.50.200;
-  >     option routers 192.168.50.1;
-  >     option subnet-mask 255.255.255.0;
-  >     option domain-name "empresa.local";
-  >     option domain-name-servers 192.168.50.10;
-  > }
+  > 40: host cliente-vip {
+  > 41:     hardware ethernet 00:0c:29:e6:8a:3a;
+  > 42:     fixed-address 192.168.50.25;
+  > 43:     option host-name "cliente-vip.empresa.local";
+  > 44: }
   > ```
-  > *- Fíjense en la técnica para crear el rango de exclusión: la práctica nos exige repartir del `.100` al `.200`, pero excluyendo del `.150` al `.160` para equipos fijos como impresoras. En el estándar ISC-DHCP esto se logra de forma elegante dividiendo la directiva `range` en dos bloques: del `.100` al `.149`, y del `.161` al `.200`. De esta manera, el espacio entre el 150 y el 160 queda matemáticamente protegido y jamás será entregado a ningún cliente dinámico.*
-  > *- Las opciones `routers` y `domain-name-servers` le inyectan al cliente la puerta de enlace y la IP de nuestro propio servidor DNS.*
+  > *- `hardware ethernet`: Vincula la dirección física MAC del cliente.*
+  > *- `fixed-address`: Obliga al servidor a entregarle siempre la dirección IP fija `192.168.50.25`, asegurando disponibilidad determinista para equipos de alta prioridad.*
   > 
-  > *Y justo debajo tenemos el bloque de reserva estática por dirección MAC:*
-  > ```text
-  > host cliente-vip {
-  >     hardware ethernet 00:0c:29:e6:8a:3a;
-  >     fixed-address 192.168.50.25;
-  > }
-  > ```
-  > *- `hardware ethernet`: especifica la dirección física irrepetible de la tarjeta de red de nuestra máquina Debian XFCE.*
-  > *- `fixed-address`: le asigna de manera permanente e inamovible la IP `192.168.50.25`. Sin importar cuántas veces se reinicie este cliente, siempre recibirá exactamente esta dirección.*
-  > 
-  > *Antes de reiniciar el servicio, SIEMPRE debemos comprobar que no tengamos errores de sintaxis o puntos y comas faltantes. Para ello ejecutamos:*
+  > *Antes de iniciar el servicio, ejecutamos la comprobación de sintaxis:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
   sudo dhcpd -t -cf /etc/dhcp/dhcpd.conf
   ```
 * **Explicación técnica:**
-  > *- El flag `-t` significa 'test syntax' (prueba de sintaxis) y `-cf` indica la ruta del archivo de configuración. Si no arroja ningún mensaje de error, nuestro archivo está impecable."*
+  > *- El flag `-t` ejecuta la prueba de análisis sintáctico sobre el archivo especificado por `-cf`. La ausencia de advertencias confirma la integridad del archivo."*
 
 ---
 
-### [08:30 - 10:30] Paso 4: Configuración de BIND9 (Forwarders, Zona Directa e Inversa)
+### [09:30 - 11:30] Paso 5: Desglose Línea por Línea de BIND9 (Opciones, Zonas y Registros)
 
-* **En pantalla:** Terminal de Debian Server mostrando las carpetas de BIND9.
+* **En pantalla:** Consola de Debian Server mostrando los archivos de BIND9 con `cat -n`.
 * **Lo que dices verbalmente:**
-  > *"Ahora pasamos al motor DNS: BIND9. Su configuración se compone de tres partes: las opciones globales, la declaración de zonas y los archivos de registros.*
+  > *"Continuamos con la auditoría de BIND9. Inspeccionamos primero `/etc/bind/named.conf.options` mediante `cat -n`:*
+* **Comando a ejecutar en Debian Server:**
+  ```bash
+  cat -n /etc/bind/named.conf.options
+  ```
+* **Explicación técnica línea por línea:**
+  > *- **Líneas 8 y 9 (`allow-query` y `allow-recursion`):** Restringen las consultas y la recursión únicamente al localhost y a la subred corporativa `192.168.50.0/24`, evitando ataques de amplificación DNS desde redes externas.*
+  > *- **Líneas 12 a 15 (`forwarders { 8.8.8.8; 1.1.1.1; };`):** Define los servidores DNS públicos a los cuales BIND9 consultará recursivamente cuando se le soliciten dominios que no pertenezcan a `empresa.local`.*
+  > *- **Línea 24 (`listen-on port 53 { 127.0.0.1; 192.168.50.10; };`):** Enlaza el demonio a los sockets locales en el puerto estándar UDP y TCP 53.*
   > 
-  > *En `/etc/bind/named.conf.options`, configuramos los reenviadores o forwarders. Cuando un cliente consulte por un dominio público como `google.com`, BIND9 no lo tiene en su base de datos local, por lo que reenviará recursivamente la consulta a servidores DNS mundiales como `8.8.8.8` de Google y `1.1.1.1` de Cloudflare.*
-  > 
-  > *En `/etc/bind/named.conf.local` declaramos nuestras dos zonas:*
+  > *En `/etc/bind/named.conf.local` declaramos formalmente las zonas:*
   > ```text
   > zone "empresa.local" {
   >     type master;
   >     file "/etc/bind/zones/db.empresa.local";
   > };
-  > 
   > zone "50.168.192.in-addr.arpa" {
   >     type master;
   >     file "/etc/bind/zones/db.192.168.50";
   > };
   > ```
-  > *- `type master`: indica que este servidor posee la copia autoritativa y original de los registros.*
-  > *- `file`: especifica la ruta física donde se almacenan los registros.*
+  > *- `type master`: Declara a este nodo como la fuente primaria autoritativa de datos.*
+  > *- `file`: Establece la ruta absoluta al archivo de registros.*
   > 
-  > *Inspeccionemos el archivo de zona directa con `cat /etc/bind/zones/db.empresa.local`:*
+  > *Inspeccionemos ahora la zona directa ejecutando `cat -n /etc/bind/zones/db.empresa.local`:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
-  cat /etc/bind/zones/db.empresa.local
+  cat -n /etc/bind/zones/db.empresa.local
   ```
 * **Explicación técnica de registros DNS:**
-  > *- El registro **SOA** (Start of Authority) contiene los parámetros de control de la zona, incluyendo el número serial con formato de fecha, indispensable para la replicación entre servidores.*
-  > *- Registro **NS** (Name Server): declara a `ns1.empresa.local.` como el servidor de nombres oficial.*
-  > *- Registros **A** (Address): vinculan nombres directos a la IP `192.168.50.10`: `ns1`, `server`, `mail` y `www`.*
-  > *- Registro **CNAME** (Canonical Name): crea un alias de tal forma que `web.empresa.local` apunte de forma transparente a `www.empresa.local`.*
-  > *- Registro **MX** (Mail Exchange): `IN MX 10 mail.empresa.local.` especifica que cualquier correo para el dominio `@empresa.local` debe entregarse al servidor mail con prioridad 10.*
-  > *- Registro **TXT** (SPF): `"v=spf1 mx ip4:192.168.50.10 ~all"`, una política de seguridad que le indica al mundo que nuestra IP está autorizada para emitir correos a nombre de la empresa.*
+  > *- **Línea 5 (`$TTL 86400`):** Establece el tiempo de vida en caché estándar (24 horas) para los registros.*
+  > *- **Línea 6 (`@ IN SOA ns1.empresa.local. admin.empresa.local.`):** Registro Start of Authority. El `@` representa el origen (`empresa.local`), seguido del servidor primario y la dirección de correo del administrador (donde el punto sustituye al `@`).*
+  > *- **Línea 7 (`2026110501`):** Número de serie en formato `AAAAMMDD` más dos dígitos de versión. Indispensable incrementarlo cada vez que se modifique un registro.*
+  > *- **Línea 16 (`@ IN NS ns1.empresa.local.`):** Declara el servidor de nombres autorizado.*
+  > *- **Líneas 21 a 26 (Registros A):** Mapean los nombres `ns1`, `server`, `mail`, `ftp` y `www` hacia la dirección `192.168.50.10`.*
+  > *- **Línea 31 (`web IN CNAME www.empresa.local.`):** Crea un alias canónico para que `web` resuelva hacia `www`.*
+  > *- **Línea 37 (`@ IN MX 10 mail.empresa.local.`):** Define el intercambiador de correo corporativo con prioridad de coste 10.*
+  > *- **Línea 42 (`@ IN TXT "v=spf1 mx ip4:192.168.50.10 ~all"`):** Registro de seguridad Sender Policy Framework que valida la legitimidad de los correos emitidos por el dominio.*
   > 
-  > *Y en `/etc/bind/zones/db.192.168.50` definimos los registros **PTR** para la resolución inversa, traduciendo el puntero `10` de vuelta hacia nuestros hosts.*
-  > 
-  > *Validamos la configuración global y las zonas con las herramientas nativas de BIND9:*
+  > *Procedemos a la validación rigurosa de sintaxis de ambas zonas:*
 * **Comandos de validación en Debian Server:**
   ```bash
   sudo named-checkconf
@@ -227,88 +230,88 @@
   sudo named-checkzone 50.168.192.in-addr.arpa /etc/bind/zones/db.192.168.50
   ```
 * **Explicación técnica:**
-  > *- `named-checkconf` valida la sintaxis de todos los archivos de configuración de BIND9. Si la terminal regresa limpia sin errores, todo está perfecto.*
-  > *- `named-checkzone` carga y valida la estructura de cada zona. Observen cómo la terminal nos responde **OK** y muestra el número serial cargado.*
+  > *- `named-checkconf`: Verifica la sintaxis global de los archivos de BIND9. Una salida limpia indica ausencia de errores.*
+  > *- `named-checkzone`: Carga y analiza los registros de la zona en memoria. La respuesta en pantalla nos devuelve formalmente **OK** y el número de serie cargado.*
   > 
-  > *Ahora reiniciamos ambos servicios y comprobamos su estado:*
+  > *Reiniciamos y confirmamos el estado de ejecución de ambos servicios:*
 * **Comando a ejecutar en Debian Server:**
   ```bash
-  sudo systemctl restart bind9 && sudo systemctl restart isc-dhcp-server
+  sudo systemctl restart bind9 isc-dhcp-server
   sudo systemctl status bind9 isc-dhcp-server --no-pager
   ```
 * **Resultado:**
-  > *- Ambos servicios aparecen en color verde con la etiqueta **active (running)**. ¡Nuestra infraestructura de servidor está lista para recibir clientes!"*
+  > *- Ambos demonios reportan el estado operativo en color verde: **active (running)**."*
 
 ---
 
-### [10:30 - 13:00] Paso 5: Pruebas y Verificación en Vivo desde Debian XFCE Cliente
+### [11:30 - 13:30] Paso 6: Verificación y Auditoría de Red desde el Cliente
 
-* **En pantalla:** Enfoque en la máquina de la derecha: `Debian XFCE Cliente`.
+* **En pantalla:** Enfoque en la máquina derecha: `Debian XFCE Cliente`.
 * **Lo que dices verbalmente:**
-  > *"Ha llegado el momento cumbre: demostrar que nuestro cliente Debian XFCE se comunica a la perfección con el servidor.*
-  > 
-  > *En Debian XFCE la red es administrada por NetworkManager. Para forzar una renovación completa de parámetros de red y disparar la negociación DHCP, ejecutamos en la terminal del cliente:*
+  > *"Nos trasladamos a la estación de trabajo cliente con Debian XFCE. Procedemos a forzar la renegociación del enlace de red para disparar la secuencia DORA contra nuestro servidor DHCP:*
 * **Comando a ejecutar en Debian XFCE Cliente:**
   ```bash
   sudo nmcli networking off && sudo nmcli networking on
   ```
-* **Explicación técnica:**
-  > *- `nmcli` es la interfaz de línea de comandos de NetworkManager. Al apagar y encender la red, la interfaz `ens33` del cliente inicia de inmediato la secuencia DORA.*
+* **Explicación técnica del comando:**
+  > *- `nmcli` interactúa con el demonio NetworkManager. Al reiniciar la pila de red, el adaptador `ens33` libera cualquier estado anterior y emite el paquete `DHCPDISCOVER` en el segmento virtual.*
   > 
-  > *Comprobemos qué dirección IP nos entregó el servidor ejecutando `ip a`:*
+  > *Auditemos los parámetros obtenidos ejecutando `ip a`:*
 * **Comando a ejecutar en Debian XFCE Cliente:**
   ```bash
   ip a
   ```
-* **Interpretación del resultado:**
-  > *- ¡Miren la salida en pantalla! En la interfaz `ens33` observamos dos datos cruciales:*
-  > *1. La dirección física MAC es `00:0c:29:e6:8a:3a`.*
-  > *2. La dirección IPv4 asignada es exactamente `192.168.50.25/24` con la bandera `dynamic noprefixroute`.*
-  > *Esto comprueba de forma contundente que el servidor DHCP reconoció la MAC de esta máquina y le aplicó la directiva de reserva fija `host cliente-vip`.*
+* **Interpretación técnica de la salida:**
+  > *- En la tarjeta `ens33` constatamos dos hechos indiscutibles:*
+  > *1. La dirección física MAC del adaptador es `00:0c:29:e6:8a:3a`.*
+  > *2. La dirección IPv4 concedida es exactamente `192.168.50.25/24`.*
+  > *Esto demuestra que el servidor DHCP procesó la directiva `host cliente-vip`, reconoció la dirección MAC física y le otorgó la IP reservada.*
   > 
-  > *Ahora comprobemos la configuración del DNS con `cat /etc/resolv.conf`:*
+  > *Inspeccionemos la resolución DNS asignada con `cat /etc/resolv.conf`:*
 * **Comando a ejecutar en Debian XFCE Cliente:**
   ```bash
   cat /etc/resolv.conf
   ```
-* **Interpretación del resultado:**
-  > *- Observen la línea `nameserver 192.168.50.10` y `search empresa.local`. El servidor DHCP le transmitió con éxito al cliente la ubicación de nuestro servidor BIND9.*
+* **Interpretación:**
+  > *- El archivo refleja `nameserver 192.168.50.10` y `search empresa.local`, demostrando la correcta inyección de opciones DHCP.*
   > 
-  > *Ahora realizaremos las 4 pruebas de fuego con `nslookup` y `dig`:*
+  > *Ejecutemos ahora las cuatro pruebas de validación DNS:*
 * **Comandos a ejecutar consecutivamente en Debian XFCE Cliente:**
   ```bash
-  # 1. Resolución Directa (Registros A y CNAME)
+  # 1. Resolución Directa A y CNAME
   nslookup www.empresa.local 192.168.50.10
   nslookup ftp.empresa.local 192.168.50.10
 
-  # 2. Resolución Inversa (Puntero PTR)
+  # 2. Resolución Inversa PTR
   nslookup 192.168.50.10 192.168.50.10
 
-  # 3. Consulta de Registro de Correo MX
+  # 3. Consulta de Registro MX
   dig @192.168.50.10 empresa.local MX +short
 
   # 4. Prueba de Reenviadores Recursivos a Internet (Forwarders)
   nslookup google.com 192.168.50.10
   ```
-* **Explicación e interpretación de cada resultado:**
-  > *- En la primera prueba, `www.empresa.local` y `ftp.empresa.local` nos devuelven de inmediato la IP `192.168.50.10` con respuesta autoritativa.*
-  > *- En la segunda prueba, al consultar la IP numérica `192.168.50.10`, BIND9 consulta su zona inversa `50.168.192.in-addr.arpa` y nos devuelve de vuelta todos los nombres canónicos asociados: `ns1`, `server`, `mail`, `www` y `ftp.empresa.local.`.*
-  > *- En la tercera prueba, `dig` nos confirma que el servidor de intercambio de correo es `mail.empresa.local` con prioridad 10.*
-  > *- Y en la cuarta prueba, al consultar un dominio mundial como `google.com`, nuestro servidor BIND9 se comunica con los servidores públicos `8.8.8.8` y nos entrega la respuesta exitosa en el cliente. ¡Todo funciona con precisión de reloj suizo!"*
+* **Explicación de cada resultado:**
+  > *- Las consultas directas a `www` y `ftp` resuelven a `192.168.50.10` de forma autoritativa.*
+  > *- La resolución inversa sobre la IP numérica `192.168.50.10` nos devuelve los nombres canónicos asociados mediante la zona `.in-addr.arpa`.*
+  > *- El comando `dig` confirma el host intercambiador de correo `mail.empresa.local` con coste 10.*
+  > *- Y la consulta a `google.com` demuestra que BIND9 reenvía recursivamente la petición hacia los servidores públicos `8.8.8.8`, entregando la respuesta al cliente sin demoras."*
 
 ---
 
-## D. CONCLUSIÓN Y BUENAS PRÁCTICAS
+## D. CONCLUSIONES TÉCNICAS Y CIERRE FORMAL
 
-### [13:00 - 14:00] Escena 6: Resumen Técnico y Cierre del Video
+### [13:30 - 14:30] Escena 7: Síntesis de Resultados y Cierre
 
-* **En pantalla:** Cámara web en primer plano o escritorio mostrando ambas máquinas con las salidas exitosas.
+* **En pantalla:** Cámara web en primer plano con el entorno virtualizado de fondo.
 * **Lo que dices verbalmente:**
-  > *"En este tutorial hemos demostrado la implementación completa y profesional de la infraestructura base de red en Linux:*
-  > *1. Instalamos y securizamos **ISC-DHCP-Server**, configurando rangos dinámicos, aislando rangos excluidos para proteger equipamiento de oficina y fijando direcciones IP mediante reservas estáticas por hardware MAC.*
-  > *2. Desplegamos **BIND9**, configurando zonas autoritativas directas, zonas inversas mediante punteros PTR y reenviadores recursivos que aseguran la navegación hacia internet.*
-  > *3. Validamos cada archivo con herramientas de comprobación de sintaxis como `named-checkconf`, `named-checkzone` y `dhcpd -t` antes de reiniciar los servicios, una práctica indispensable en entornos de producción.*
+  > *"Con estas pruebas prácticas concluimos formalmente la verificación técnica de la Tarea 4.1.*
   > 
-  > *Todos los archivos de configuración comentados, el manual de pruebas y la memoria técnica en PDF se encuentran disponibles en el repositorio público de GitHub cuyo enlace encontrarán en la descripción de este video.*
+  > *Podemos sintetizar los logros de ingeniería obtenidos en tres puntos:*
+  > *1. **Automatización Determinista de Red:** Desplegamos **ISC-DHCP-Server** configurando pools dinámicos segmentados, rangos de exclusión protegidos para equipamiento fijo y reservas deterministas basadas en la dirección física MAC del cliente.*
+  > *2. **Resolución de Nombres Integral:** Implementamos **BIND9** como servidor autoritativo para zonas directas e inversas, incorporando registros de servicios esenciales como MX y SPF, e integrando reenviadores recursivos hacia internet.*
+  > *3. **Validación de la Arquitectura Cliente/Servidor:** Verificamos el desacoplamiento total entre el nodo servidor y el nodo cliente, demostrando la interoperabilidad del estándar independientemente del sistema operativo empleado en la estación de trabajo.*
   > 
-  > *Si este video les fue de utilidad, no olviden dejar su pulgar arriba, suscribirse al canal y dejar sus dudas en la caja de comentarios. Mi nombre es [Tu Nombre Completo] y nos vemos en el próximo video donde desplegaremos un stack web seguro con Apache, MariaDB, PHP y FTP enjaulado. ¡Hasta la próxima!"*
+  > *Todos los archivos de configuración, manuales de pruebas y reportes técnicos con capturas de evidencia se encuentran disponibles y auditables en el repositorio institucional de GitHub.*
+  > 
+  > *Agradezco su atención a esta presentación técnica."*
